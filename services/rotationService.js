@@ -21,6 +21,7 @@ const activeRotationStreams = new Map();
 const failedRotationStarts = new Map();
 const loggedAlreadyRunning = new Set();
 const loggedScheduleInfo = new Set();
+let checkInProgress = false;
 
 function formatLocalDateTime(date) {
   const y = date.getFullYear();
@@ -124,6 +125,12 @@ async function moveRotationToNextScheduledItem(rotation, items, currentIndex, re
 }
 
 async function checkRotations() {
+  if (checkInProgress) {
+    return;
+  }
+
+  checkInProgress = true;
+
   try {
     const activeRotations = await Rotation.findActiveRotations();
     const now = new Date();
@@ -254,6 +261,8 @@ async function checkRotations() {
     }
   } catch (error) {
     console.error('[RotationService] Error checking rotations:', error);
+  } finally {
+    checkInProgress = false;
   }
 }
 
