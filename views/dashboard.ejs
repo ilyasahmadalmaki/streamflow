@@ -9,7 +9,7 @@
       </div>
       <div class="w-px h-4 bg-gray-700 flex-shrink-0"></div>
       <div class="flex items-center gap-1.5 flex-shrink-0">
-        <i class="ti ti-cpu text-blue-400 text-sm font-loaded"></i>
+        <i class="ti ti-cpu text-primary text-sm font-loaded"></i>
         <span id="cpu-usage-mobile" class="text-xs font-bold text-white">0</span>
         <span class="text-[10px] text-gray-400">%</span>
       </div>
@@ -23,7 +23,7 @@
       <div class="flex items-center gap-1.5 flex-shrink-0 cursor-pointer" onclick="toggleNetworkDiskDisplay('mobile')">
         <i class="ti ti-wifi text-yellow-400 text-sm font-loaded" id="toggle-icon-mobile"></i>
         <div id="network-content-mobile" class="flex items-center gap-1">
-          <span class="text-[10px] text-blue-400">↑<span id="upload-speed-mobile" class="font-bold">0</span></span>
+          <span class="text-[10px] text-primary">↑<span id="upload-speed-mobile" class="font-bold">0</span></span>
           <span class="text-[10px] text-green-400">↓<span id="download-speed-mobile" class="font-bold">0</span></span>
         </div>
         <div id="disk-content-mobile" class="items-center gap-1" style="display: none;">
@@ -96,7 +96,7 @@
       <div id="network-content-desktop" class="mt-2 space-y-2">
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-400">↑ Upload</span>
-          <span id="upload-speed" class="text-lg font-bold text-blue-400">0 Mbps</span>
+          <span id="upload-speed" class="text-lg font-bold text-primary">0 Mbps</span>
         </div>
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-400">↓ Download</span>
@@ -122,7 +122,7 @@
       <div id="network-content-desktop-wide" class="mt-2 space-y-2">
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-400">↑ Upload</span>
-          <span id="upload-speed-wide" class="text-lg font-bold text-blue-400">0 Mbps</span>
+          <span id="upload-speed-wide" class="text-lg font-bold text-primary">0 Mbps</span>
         </div>
         <div class="flex justify-between items-center">
           <span class="text-sm text-gray-400">↓ Download</span>
@@ -143,7 +143,7 @@
           <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
         </div>
         <button onclick="openNewStreamModal()"
-          class="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+          class="w-full sm:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors">
           <i class="ti ti-plus"></i>
           <span>Buat Stream Baru</span>
         </button>
@@ -297,7 +297,7 @@
                           <button type="button"
                             class="platform-option w-full flex items-center px-4 py-2 hover:bg-dark-600" 
                             data-url="rtmps://live-api-s.facebook.com:443/rtmp">
-                            <i class="ti ti-brand-facebook text-blue-500 text-base mr-2"></i>
+                            <i class="ti ti-brand-facebook text-primary text-base mr-2"></i>
                             <span class="text-sm">Facebook</span>
                           </button>
                           <button type="button"
@@ -664,7 +664,7 @@
             Cancel
           </button>
           <button type="submit" form="newStreamForm"
-            class="px-5 py-2.5 text-sm font-medium bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors">
+            class="px-5 py-2.5 text-sm font-medium bg-primary hover:bg-primary text-white rounded-lg transition-colors">
             Create Stream
           </button>
         </div>
@@ -777,7 +777,7 @@
                           <button type="button"
                             class="platform-option w-full flex items-center px-4 py-2 hover:bg-dark-600" 
                             data-url="rtmps://live-api-s.facebook.com:443/rtmp">
-                            <i class="ti ti-brand-facebook text-blue-500 text-base mr-2"></i>
+                            <i class="ti ti-brand-facebook text-primary text-base mr-2"></i>
                             <span class="text-sm">Facebook</span>
                           </button>
                           <button type="button"
@@ -1122,7 +1122,7 @@
             Cancel
           </button>
           <button type="submit" form="editStreamForm"
-            class="px-5 py-2.5 text-sm font-medium bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors">
+            class="px-5 py-2.5 text-sm font-medium bg-primary hover:bg-primary text-white rounded-lg transition-colors">
             Save Changes
           </button>
         </div>
@@ -1340,10 +1340,10 @@
       const themes = {
         'info': {
           icon: options.icon || 'ti-info-circle',
-          color: 'text-blue-600',
-          bg: 'bg-blue-600/10',
+          color: 'text-primary',
+          bg: 'bg-primary/10',
           border: 'border-gray-600/50',
-          button: 'bg-blue-600 hover:bg-blue-700',
+          button: 'bg-primary hover:bg-primary',
           buttonIcon: 'ti-check'
         },
         'danger': {
@@ -1903,7 +1903,7 @@
           <button
             onclick="startStream('${streamId}')"
             id="action-btn-${streamId}-${view}"
-            class="${btnClass} bg-primary hover:bg-blue-600">
+            class="${btnClass} bg-primary hover:bg-primary">
             Start
           </button>
         `;
@@ -2722,7 +2722,7 @@
       
       ytTags.forEach((tag, index) => {
         const badge = document.createElement('span');
-        badge.className = 'yt-tag-badge inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 border border-primary/30 rounded-full text-xs text-blue-300';
+        badge.className = 'yt-tag-badge inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 border border-primary/30 rounded-full text-xs text-primary';
         badge.innerHTML = `
           <span>${tag}</span>
           <button type="button" class="flex items-center justify-center w-3.5 h-3.5 rounded-full hover:bg-white/20" onclick="removeYtTag(${index})">
@@ -2886,7 +2886,7 @@
       
       editYtTags.forEach((tag, index) => {
         const badge = document.createElement('span');
-        badge.className = 'edit-yt-tag-badge inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 border border-primary/30 rounded-full text-xs text-blue-300';
+        badge.className = 'edit-yt-tag-badge inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 border border-primary/30 rounded-full text-xs text-primary';
         badge.innerHTML = `<span>${tag}</span><button type="button" class="flex items-center justify-center w-3.5 h-3.5 rounded-full hover:bg-white/20" onclick="removeEditYtTag(${index})"><i class="ti ti-x text-xs"></i></button>`;
         container.insertBefore(badge, input);
       });
@@ -3570,17 +3570,17 @@
         
         if (desktopEmptyContent) {
           desktopEmptyContent.innerHTML = `
-            <i class="ti ti-playlist text-4xl text-blue-400 mb-2"></i>
+            <i class="ti ti-playlist text-4xl text-primary mb-2"></i>
             <p class="text-sm text-gray-300 font-medium">${video.name}</p>
-            <p class="text-xs text-blue-300 mt-1">Playlist selected • ${video.duration || 'Unknown duration'}</p>
+            <p class="text-xs text-primary mt-1">Playlist selected • ${video.duration || 'Unknown duration'}</p>
           `;
         }
         
         if (mobileEmptyContent) {
           mobileEmptyContent.innerHTML = `
-            <i class="ti ti-playlist text-4xl text-blue-400 mb-2"></i>
+            <i class="ti ti-playlist text-4xl text-primary mb-2"></i>
             <p class="text-sm text-gray-300 font-medium">${video.name}</p>
-            <p class="text-xs text-blue-300 mt-1">Playlist selected • ${video.duration || 'Unknown duration'}</p>
+            <p class="text-xs text-primary mt-1">Playlist selected • ${video.duration || 'Unknown duration'}</p>
           `;
         }
       } else {

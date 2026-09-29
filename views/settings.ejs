@@ -9,27 +9,27 @@
   
   <div class="mb-6 border-b border-gray-700">
     <div class="flex flex-wrap -mb-px">
-      <button class="settings-tab active mr-2 py-2 px-4 text-blue-600 border-b-2 border-primary font-medium hover:text-blue-600 hover:border-blue-600"
+      <button class="settings-tab active mr-2 py-2 px-4 text-primary border-b-2 border-primary font-medium hover:text-primary hover:border-primary"
         data-tab="profile">
         <i class="ti ti-user mr-2"></i>Profile
       </button>
       <button
-        class="settings-tab mr-2 py-2 px-4 text-gray-400 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 font-medium"
+        class="settings-tab mr-2 py-2 px-4 text-gray-400 hover:text-primary border-b-2 border-transparent hover:border-primary font-medium"
         data-tab="security">
         <i class="ti ti-shield-lock mr-2"></i>Security
       </button>
       <button
-        class="settings-tab mr-2 py-2 px-4 text-gray-400 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 font-medium"
+        class="settings-tab mr-2 py-2 px-4 text-gray-400 hover:text-primary border-b-2 border-transparent hover:border-primary font-medium"
         data-tab="integration">
         <i class="ti ti-plug mr-2"></i>Integration
       </button>
       <button
-        class="settings-tab mr-2 py-2 px-4 text-gray-400 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 font-medium"
+        class="settings-tab mr-2 py-2 px-4 text-gray-400 hover:text-primary border-b-2 border-transparent hover:border-primary font-medium"
         data-tab="logs">
         <i class="ti ti-file-text mr-2"></i>Logs
       </button>
       <button
-        class="settings-tab mr-2 py-2 px-4 text-gray-400 hover:text-blue-600 border-b-2 border-transparent hover:border-blue-600 font-medium"
+        class="settings-tab mr-2 py-2 px-4 text-gray-400 hover:text-primary border-b-2 border-transparent hover:border-primary font-medium"
         data-tab="about">
         <i class="ti ti-info-circle mr-2"></i>About
       </button>
@@ -57,7 +57,7 @@
                 </div>
                 <div class="absolute bottom-0 right-0">
                   <label for="profile-upload"
-                    class="flex items-center justify-center w-8 h-8 rounded-full bg-primary hover:bg-blue-600 cursor-pointer shadow-lg transition-colors">
+                    class="flex items-center justify-center w-8 h-8 rounded-full bg-primary hover:bg-primary cursor-pointer shadow-lg transition-colors">
                     <i class="ti ti-pencil text-white text-sm"></i>
                   </label>
                   <input id="profile-upload" name="avatar" type="file" accept="image/*" class="hidden">
@@ -84,7 +84,7 @@
           
           <div class="pt-4">
             <button type="submit"
-              class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors">
+              class="px-4 py-2 bg-primary hover:bg-primary text-white rounded-lg transition-colors">
               Save Profile Changes
             </button>
           </div>
@@ -147,7 +147,7 @@
             
             <div class="pt-4">
               <button type="submit"
-                class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors">
+                class="px-4 py-2 bg-primary hover:bg-primary text-white rounded-lg transition-colors">
                 Change Password
               </button>
             </div>
@@ -158,14 +158,14 @@
         <div class="bg-gray-800 rounded-lg p-6">
           <h3 class="text-lg font-semibold mb-6">Google reCAPTCHA Settings</h3>
           
-          <div class="bg-blue-900/20 border border-blue-700/50 rounded-lg p-4 mb-6 sm:max-w-md">
+          <div class="bg-primary/10 border border-primary/50 rounded-lg p-4 mb-6 sm:max-w-md">
             <div class="flex items-start gap-3">
-              <i class="ti ti-info-circle text-blue-400 text-xl flex-shrink-0 mt-0.5"></i>
+              <i class="ti ti-info-circle text-primary text-xl flex-shrink-0 mt-0.5"></i>
               <div class="text-sm">
-                <p class="text-blue-400 font-medium mb-2">Enable <b>reCAPTCHA v2</b> to protect login page</p>
+                <p class="text-primary font-medium mb-2">Enable <b>reCAPTCHA v2</b> to protect login page</p>
                 <div class="flex flex-wrap gap-2">
                   <a href="https://www.google.com/recaptcha/admin" target="_blank" rel="noopener noreferrer" 
-                    class="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-xs">
+                    class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary hover:bg-primary text-white rounded-lg transition-colors text-xs">
                     <i class="ti ti-external-link"></i>
                     Get reCAPTCHA Keys
                   </a>
@@ -244,7 +244,7 @@
 
             <div class="flex items-center gap-3 pt-2">
               <button type="submit"
-                class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors">
+                class="px-4 py-2 bg-primary hover:bg-primary text-white rounded-lg transition-colors">
                 <i class="ti ti-device-floppy mr-2"></i>Save reCAPTCHA Keys
               </button>
               <% if (typeof hasRecaptchaKeys !== 'undefined' && hasRecaptchaKeys) { %>
@@ -321,7 +321,7 @@
               
               <div class="pt-2">
                 <button type="submit" id="save-youtube-credentials"
-                  class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors">
+                  class="px-4 py-2 bg-primary hover:bg-primary text-white rounded-lg transition-colors">
                   <i class="ti ti-device-floppy mr-2"></i>Save API Credentials
                 </button>
               </div>
@@ -362,7 +362,7 @@
                             <div class="flex items-center gap-2">
                               <p class="font-medium text-white"><%= channel.channel_name %></p>
                               <% if (channel.is_default) { %>
-                                <span class="px-2 py-0.5 bg-blue-600/20 text-blue-600 text-xs rounded-sm">Default</span>
+                                <span class="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-sm">Default</span>
                               <% } %>
                             </div>
                             <p class="text-xs text-gray-400"><%= Number(channel.subscriber_count || 0).toLocaleString() %> subscribers</p>
@@ -411,9 +411,9 @@
                     <p class="text-yellow-400 font-medium mb-2">Please save your API credentials before connecting your YouTube account</p>
                     <p class="text-gray-400 mb-3">To get your YouTube API credentials:</p>
                     <ol class="text-gray-400 list-decimal list-inside space-y-1 mb-3">
-                      <li>Go to <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">Google Cloud Console</a></li>
+                      <li>Go to <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Google Cloud Console</a></li>
                       <li>Enable the YouTube Data API v3</li>
-                      <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">Credentials</a> and create OAuth 2.0 Client ID</li>
+                      <li>Go to <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Credentials</a> and create OAuth 2.0 Client ID</li>
                       <li>Add the Redirect URI shown above to your OAuth credentials</li>
                       <li>Copy the Client ID and Client Secret to the form on the left</li>
                     </ol>
@@ -510,7 +510,7 @@
           <p>
             StreamFlow is released under the MIT License. You are free to use, modify, and distribute this 
             software for personal or commercial purposes. See the 
-            <a href="https://github.com/bangtutorial/streamflow/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">LICENSE</a> 
+            <a href="https://github.com/bangtutorial/streamflow/blob/main/LICENSE.md" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">LICENSE</a> 
             file for more details.
           </p>
           <h4 class="text-white font-medium pt-4">Contributors</h4>
@@ -523,9 +523,9 @@
           </div>
           <h4 class="text-white font-medium pt-4">Links</h4>
           <ul class="list-disc list-inside space-y-1">
-            <li><a href="https://github.com/bangtutorial/streamflow" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">GitHub Repository</a></li>
-            <li><a href="https://github.com/bangtutorial/streamflow/issues" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">Report Issues</a></li>
-            <li><a href="https://youtube.com/bangtutorial" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:underline">YouTube Channel</a></li>
+            <li><a href="https://github.com/bangtutorial/streamflow" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">GitHub Repository</a></li>
+            <li><a href="https://github.com/bangtutorial/streamflow/issues" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">Report Issues</a></li>
+            <li><a href="https://youtube.com/bangtutorial" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">YouTube Channel</a></li>
           </ul>
           <div class="border-t border-gray-700 pt-6 mt-6">
             <p class="text-gray-500 text-sm">© 2026 Bang Tutorial. All rights reserved.</p>
@@ -587,12 +587,12 @@
       const tabs = document.querySelectorAll('.settings-tab');
       const tabContents = document.querySelectorAll('.settings-content');
       function activateTab(tabName) {
-        tabs.forEach(tab => tab.classList.remove('active', 'text-blue-600', 'border-blue-600'));
+        tabs.forEach(tab => tab.classList.remove('active', 'text-primary', 'border-primary'));
         tabs.forEach(tab => tab.classList.add('text-gray-400', 'border-transparent'));
         tabContents.forEach(content => content.classList.add('hidden'));
         const selectedTab = document.querySelector(`.settings-tab[data-tab="${tabName}"]`);
         if (selectedTab) {
-          selectedTab.classList.add('active', 'text-blue-600', 'border-blue-600');
+          selectedTab.classList.add('active', 'text-primary', 'border-primary');
           selectedTab.classList.remove('text-gray-400', 'border-transparent');
           const selectedContent = document.getElementById(`${tabName}-tab`);
           if (selectedContent) {
@@ -865,13 +865,13 @@
         } else if (line.includes('[LOG]') || line.includes('Successfully') || line.includes('success')) {
           colorClass = 'text-green-400';
         } else if (line.includes('[Scheduler]') || line.includes('[StreamingService]')) {
-          colorClass = 'text-blue-400';
+          colorClass = 'text-primary';
         }
         
         const timestampRegex = /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)/g;
-        line = line.replace(timestampRegex, '<span class="text-blue-400">$1</span>');
+        line = line.replace(timestampRegex, '<span class="text-primary">$1</span>');
         
-        return `<div class="${colorClass} py-0.5 border-b border-gray-800 hover:bg-gray-800/50">${escapeHtml(line).replace(/&lt;span class="text-blue-400"&gt;/g, '<span class="text-blue-400">').replace(/&lt;\/span&gt;/g, '</span>')}</div>`;
+        return `<div class="${colorClass} py-0.5 border-b border-gray-800 hover:bg-gray-800/50">${escapeHtml(line).replace(/&lt;span class="text-primary"&gt;/g, '<span class="text-primary">').replace(/&lt;\/span&gt;/g, '</span>')}</div>`;
       }
 
       function escapeHtml(text) {

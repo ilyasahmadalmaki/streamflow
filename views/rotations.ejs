@@ -6,7 +6,7 @@
     <p class="text-gray-400 text-sm mt-1">Auto-rotate YouTube streams with different metadata</p>
   </div>
   <% if (youtubeConnected) { %>
-  <button onclick="openCreateRotationModal()" class="w-full md:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+  <button onclick="openCreateRotationModal()" class="w-full md:w-auto flex items-center justify-center gap-2 bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors">
     <i class="ti ti-plus"></i>
     <span>New Rotation</span>
   </button>
@@ -75,7 +75,7 @@
             <span class="text-gray-600 text-[10px]">•</span>
             <% } %>
             <% if (rotation.repeat_mode === 'daily') { %>
-            <span class="text-[10px] text-blue-400">Daily</span>
+            <span class="text-[10px] text-primary">Daily</span>
             <% } else if (rotation.repeat_mode === 'weekly') { %>
             <span class="text-[10px] text-purple-400">Weekly</span>
             <% } else if (rotation.repeat_mode === 'monthly') { %>
@@ -98,7 +98,7 @@
           <span class="text-[10px] font-medium">Paused</span>
         </span>
         <% } else if (rotation.status === 'completed') { %>
-        <span class="flex items-center text-blue-400">
+        <span class="flex items-center text-primary">
           <i class="ti ti-check text-[10px] mr-1"></i>
           <span class="text-[10px] font-medium">Completed</span>
         </span>
@@ -111,7 +111,7 @@
       </div>
       <div class="flex items-center gap-1.5">
         <% if (rotation.status === 'inactive' || rotation.status === 'paused' || rotation.status === 'completed') { %>
-        <button onclick="activateRotation('<%= rotation.id %>')" class="px-2.5 py-1 text-white text-[10px] font-medium rounded transition-colors bg-primary hover:bg-blue-600">Start</button>
+        <button onclick="activateRotation('<%= rotation.id %>')" class="px-2.5 py-1 text-white text-[10px] font-medium rounded transition-colors bg-primary hover:bg-primary">Start</button>
         <% } else if (rotation.status === 'active') { %>
         <button onclick="stopRotation('<%= rotation.id %>')" class="px-2.5 py-1 text-white text-[10px] font-medium rounded transition-colors bg-red-500 hover:bg-red-600">Stop</button>
         <% } %>
@@ -199,7 +199,7 @@
           </td>
           <td class="px-6 py-4">
             <% if (rotation.repeat_mode === 'daily') { %>
-              <span class="text-blue-400 text-sm">Every Day</span>
+              <span class="text-primary text-sm">Every Day</span>
             <% } else if (rotation.repeat_mode === 'weekly') { %>
               <span class="text-purple-400 text-sm">Every Week</span>
             <% } else if (rotation.repeat_mode === 'monthly') { %>
@@ -218,7 +218,7 @@
               <i class="ti ti-player-pause text-xs"></i>Paused
             </span>
             <% } else if (rotation.status === 'completed') { %>
-            <span class="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full inline-flex items-center gap-1">
+            <span class="px-2 py-1 bg-primary/20 text-primary text-xs rounded-full inline-flex items-center gap-1">
               <i class="ti ti-check text-xs"></i>Completed
             </span>
             <% } else { %>
@@ -250,7 +250,7 @@
           <td class="px-6 py-4 whitespace-nowrap text-right">
             <div class="flex items-center justify-end space-x-2">
               <% if (rotation.status === 'inactive' || rotation.status === 'paused' || rotation.status === 'completed') { %>
-              <button onclick="activateRotation('<%= rotation.id %>')" class="inline-flex items-center px-2.5 py-1.5 text-white text-xs font-medium rounded transition-colors bg-primary hover:bg-blue-600">
+              <button onclick="activateRotation('<%= rotation.id %>')" class="inline-flex items-center px-2.5 py-1.5 text-white text-xs font-medium rounded transition-colors bg-primary hover:bg-primary">
                 Start
               </button>
               <% } else if (rotation.status === 'active') { %>
@@ -407,7 +407,7 @@
       </div>
       <div class="flex-shrink-0 flex items-center justify-end gap-3 p-4 sm:px-6 border-t border-gray-700">
         <button onclick="closeCreateRotationModal()" class="px-5 py-2.5 text-sm font-medium text-gray-300 hover:text-white transition-colors">Cancel</button>
-        <button type="button" onclick="saveRotation()" class="px-5 py-2.5 text-sm font-medium bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors">Save Rotation</button>
+        <button type="button" onclick="saveRotation()" class="px-5 py-2.5 text-sm font-medium bg-primary hover:bg-primary text-white rounded-lg transition-colors">Save Rotation</button>
       </div>
     </div>
   </div>
@@ -811,7 +811,7 @@ function initTagsInput(itemEl, idx) {
     container.querySelectorAll('.tag-chip').forEach(el => el.remove());
     tags.forEach((tag, i) => {
       const chip = document.createElement('span');
-      chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 border border-primary/30 rounded-full text-xs text-blue-300 tag-chip';
+      chip.className = 'inline-flex items-center gap-1 px-2 py-0.5 bg-primary/20 border border-primary/30 rounded-full text-xs text-primary tag-chip';
       chip.innerHTML = `${tag}<button type="button" class="tag-remove-btn flex items-center justify-center w-3.5 h-3.5 rounded-full hover:bg-white/20"><i class="ti ti-x text-xs"></i></button>`;
       chip.querySelector('.tag-remove-btn').addEventListener('click', () => {
         tags.splice(i, 1);

@@ -150,7 +150,7 @@
               <% } %>
               
               <button type="submit" id="submitBtn"
-                class="w-full bg-primary hover:bg-blue-600 text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                class="w-full bg-primary hover:bg-primary text-white py-2.5 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 Create Account
               </button>
             </form>
@@ -158,7 +158,7 @@
             <div class="text-center mt-6">
               <p class="text-gray-400 text-sm">
                 Already have an account? 
-                <a href="/login" class="text-primary hover:text-blue-400 transition-colors">Sign in</a>
+                <a href="/login" class="text-primary hover:text-primary transition-colors">Sign in</a>
               </p>
             </div>
       </div>
@@ -226,7 +226,7 @@
           } else if (strength <= 2) {
             element.className = 'h-1 flex-1 bg-yellow-500 rounded';
           } else if (strength <= 3) {
-            element.className = 'h-1 flex-1 bg-blue-500 rounded';
+            element.className = 'h-1 flex-1 bg-primary rounded';
           } else {
             element.className = 'h-1 flex-1 bg-green-500 rounded';
           }
@@ -236,7 +236,7 @@
       });
       
       const strengthLabels = ['Weak', 'Fair', 'Good', 'Strong'];
-      const strengthColors = ['text-red-400', 'text-yellow-400', 'text-blue-400', 'text-green-400'];
+      const strengthColors = ['text-red-400', 'text-yellow-400', 'text-primary', 'text-green-400'];
       
       strengthText.textContent = strengthLabels[strength - 1] || 'Very Weak';
       strengthText.className = strengthColors[strength - 1] || 'text-red-400';

@@ -36,7 +36,7 @@ function formatDuration(seconds) {
     </p>
   </div>
   <div class="flex gap-3">
-    <button onclick="openUploadModal()" class="flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+    <button onclick="openUploadModal()" class="flex items-center gap-2 bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors">
       <i class="ti ti-upload"></i>
       <span>Upload Media</span>
     </button>
@@ -300,7 +300,7 @@ function formatDuration(seconds) {
       </div>
       <h3 class="text-lg font-medium text-gray-300 mb-2">No items yet</h3>
       <p class="text-gray-500 text-sm mb-4">Upload your first media or create a folder to get started</p>
-      <button onclick="openUploadModal()" class="inline-flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+      <button onclick="openUploadModal()" class="inline-flex items-center gap-2 bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors">
         <i class="ti ti-upload"></i>
         <span>Upload Media</span>
       </button>
@@ -348,7 +348,7 @@ function formatDuration(seconds) {
                 <p id="dropzoneText" class="text-gray-300">Drag and drop video files here</p>
                 <p class="text-gray-500 text-sm">Or click to browse</p>
               </div>
-              <label class="bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors inline-block cursor-pointer">
+              <label class="bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors inline-block cursor-pointer">
                 <span>Select files</span>
                 <input type="file" name="media" accept="video/mp4,video/avi,video/quicktime" multiple class="hidden" id="mediaFileInput">
               </label>
@@ -368,7 +368,7 @@ function formatDuration(seconds) {
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <button type="button" class="text-primary hover:text-blue-400 text-sm" onclick="document.getElementById('mediaFileInput').click()">Add more</button>
+                  <button type="button" class="text-primary hover:text-primary text-sm" onclick="document.getElementById('mediaFileInput').click()">Add more</button>
                   <button type="button" id="clearFileButton" class="text-gray-400 hover:text-white p-1">
                     <i class="ti ti-x"></i>
                   </button>
@@ -391,7 +391,7 @@ function formatDuration(seconds) {
       </div>
       <div class="flex justify-end gap-3 p-4 border-t border-gray-700">
         <button onclick="closeUploadModal()" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-gray-300 rounded-lg transition-colors">Cancel</button>
-        <button id="uploadButton" class="px-4 py-2 bg-primary hover:bg-blue-600 text-white rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
+        <button id="uploadButton" class="px-4 py-2 bg-primary hover:bg-primary text-white rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed" disabled>
           <i class="ti ti-upload mr-1.5"></i>Upload
         </button>
       </div>
@@ -848,7 +848,7 @@ function createModalDialog(options) {
   dialog.id = 'custom-modal';
   dialog.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm modal-overlay';
   const themes = {
-    'info': { icon: options.icon || 'ti-info-circle', color: 'text-primary', bg: 'bg-primary/10', button: 'bg-primary hover:bg-blue-600' },
+    'info': { icon: options.icon || 'ti-info-circle', color: 'text-primary', bg: 'bg-primary/10', button: 'bg-primary hover:bg-primary' },
     'danger': { icon: options.icon || 'ti-alert-triangle', color: 'text-red-400', bg: 'bg-red-500/10', button: 'bg-red-500 hover:bg-red-600' }
   };
   const theme = themes[options.type || 'info'];
@@ -1016,7 +1016,7 @@ function initCloudModal(type) {
         <i class="ti ti-link absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
       </div>
       <p class="text-xs text-gray-500 mb-4">${config.hint}</p>
-      <button id="import-cloud-button" class="w-full bg-primary hover:bg-blue-600 text-white py-2 rounded-lg transition-colors flex items-center justify-center">
+      <button id="import-cloud-button" class="w-full bg-primary hover:bg-primary text-white py-2 rounded-lg transition-colors flex items-center justify-center">
         <i class="ti ti-download mr-2"></i>
         Import Video
       </button>
@@ -1665,7 +1665,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           <h3 class="text-lg font-medium text-gray-300 mb-2">No items yet</h3>
           <p class="text-gray-500 text-sm mb-4">Upload your first media or create a folder to get started</p>
-          <button onclick="openUploadModal()" class="inline-flex items-center gap-2 bg-primary hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
+          <button onclick="openUploadModal()" class="inline-flex items-center gap-2 bg-primary hover:bg-primary text-white px-4 py-2 rounded-lg transition-colors">
             <i class="ti ti-upload"></i>
             <span>Upload Media</span>
           </button>
