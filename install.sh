@@ -1,236 +1,396 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-echo "================================"
-echo "   StreamFlow Quick Installer  "
-echo "================================"
+# StreamFlow installer
+# - Uses Node.js 22.x + npm, matching the documented manual installation.
+# - Does NOT install pnpm.
+# - Safe to re-run: preserves .env and existing StreamFlow data.
+# - Fails loudly on required steps instead of hiding errors with `|| true`.
+
+APP_NAME="streamflow"
+APP_DIR="${HOME}/streamflow"
+REPO_URL="https://github.com/ilyasahmadalmaki/streamflow.git"
+NODE_MAJOR="22"
+DEFAULT_PORT="7575"
+TIMEZONE="${TIMEZONE:-Asia/Jakarta}"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+log()  { echo -e "${CYAN}[$(date '+%H:%M:%S')]${NC} $*"; }
+ok()   { echo -e "${GREEN}✓${NC} $*"; }
+warn() { echo -e "${YELLOW}!${NC} $*"; }
+die()  { echo -e "${RED}✗ ERROR:${NC} $*" >&2; exit 1; }
+
+trap 'die "Installer berhenti pada baris ${LINENO}: ${BASH_COMMAND}"' ERR
+
+[[ "${EUID}" -ne 0 ]] || die "Jalankan sebagai user biasa yang memiliki sudo, bukan sebagai root."
+command -v sudo >/dev/null 2>&1 || die "sudo tidak ditemukan."
+sudo -v || die "User ini tidak memiliki akses sudo."
+
+if [[ ! -r /etc/os-release ]]; then
+    die "Tidak dapat mendeteksi OS."
+fi
+. /etc/os-release
+
+if [[ "${ID:-}" != "ubuntu" && "${ID_LIKE:-}" != *ubuntu* ]]; then
+    warn "Installer ini ditujukan untuk Ubuntu. OS terdeteksi: ${PRETTY_NAME:-unknown}"
+    read -r -p "Lanjutkan? (y/N): " answer
+    [[ "${answer}" =~ ^[Yy]$ ]] || exit 1
+fi
+
+ARCH="$(dpkg --print-architecture 2>/dev/null || true)"
+[[ "${ARCH}" == "amd64" || "${ARCH}" == "arm64" ]] || \
+    die "Arsitektur ${ARCH:-unknown} belum didukung oleh installer ini."
+
+echo "=============================================="
+echo "        StreamFlow Stable Installer"
+echo "        Node.js ${NODE_MAJOR} + npm"
+echo "        pnpm: DISABLED"
+echo "=============================================="
 echo
+read -r -p "Mulai instalasi? (y/N): " answer
+[[ "${answer}" =~ ^[Yy]$ ]] || { echo "Instalasi dibatalkan."; exit 0; }
 
-read -p "Mulai instalasi? (y/n): " -n 1 -r
-echo
-[[ ! $REPLY =~ ^[Yy]$ ]] && echo "Instalasi dibatalkan." && exit 1
+# ------------------------------------------------------------
+# 1. System packages
+# ------------------------------------------------------------
+log "Memperbarui package index..."
+sudo apt-get update
 
-# ─────────────────────────────────────────
-# 1. Update sistem
-# ─────────────────────────────────────────
-echo "🔄 Updating sistem..."
-sudo apt update && sudo apt upgrade -y
+log "Memasang dependency sistem..."
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+    ca-certificates \
+    curl \
+    git \
+    ffmpeg \
+    python3 \
+    make \
+    g++ \
+    build-essential \
+    ufw \
+    lsof
 
-# ─────────────────────────────────────────
-# 2. Install NVM
-# ─────────────────────────────────────────
-echo "📦 Installing nvm (Node Version Manager)..."
-curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/refs/heads/master/install.sh | bash
+command -v ffmpeg >/dev/null 2>&1 || die "FFmpeg gagal dipasang."
+command -v git >/dev/null 2>&1 || die "Git gagal dipasang."
+ok "Dependency sistem siap."
 
-export NVM_DIR="$HOME/.nvm"
-source "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-# Pastikan nvm tersedia di .bashrc
-grep -q 'NVM_DIR' ~/.bashrc || cat >> ~/.bashrc << 'EOF'
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-EOF
-
-# ─────────────────────────────────────────
-# 3. Install Node.js LTS
-# ─────────────────────────────────────────
-echo "📦 Installing Node.js LTS terbaru..."
-nvm install --lts
-nvm use --lts
-nvm alias default 'lts/*'
-echo "✅ Node.js $(node -v) berhasil diinstall"
-
-# ─────────────────────────────────────────
-# 4. Install pnpm
-# ─────────────────────────────────────────
-echo "📦 Installing pnpm..."
-npm install -g pnpm
-
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-mkdir -p "$PNPM_HOME"
-
-# Pastikan pnpm tersedia di .bashrc
-grep -q 'PNPM_HOME' ~/.bashrc || cat >> ~/.bashrc << 'EOF'
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$PATH"
-EOF
-
-echo "✅ pnpm $(pnpm -v) berhasil diinstall"
-
-# ─────────────────────────────────────────
-# 5. Install build tools (wajib untuk native modules)
-# ─────────────────────────────────────────
-echo "🔨 Installing build tools (python3, make, g++)..."
-sudo apt install -y python3 make g++ build-essential
-
-# ─────────────────────────────────────────
-# 6. Install FFmpeg
-# ─────────────────────────────────────────
-if command -v ffmpeg &> /dev/null; then
-    echo "✅ FFmpeg sudah terinstall, skip..."
+# ------------------------------------------------------------
+# 2. Node.js 22 + npm
+# ------------------------------------------------------------
+if command -v node >/dev/null 2>&1; then
+    CURRENT_NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || true)"
 else
-    echo "🎬 Installing FFmpeg..."
-    sudo apt install ffmpeg -y
+    CURRENT_NODE_MAJOR=""
 fi
 
-# ─────────────────────────────────────────
-# 7. Install Git
-# ─────────────────────────────────────────
-if command -v git &> /dev/null; then
-    echo "✅ Git sudah terinstall, skip..."
+if [[ "${CURRENT_NODE_MAJOR}" != "${NODE_MAJOR}" ]]; then
+    log "Memasang/menyetarakan Node.js ${NODE_MAJOR}.x..."
+    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | sudo -E bash -
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs
 else
-    echo "🔧 Installing Git..."
-    sudo apt install git -y
+    ok "Node.js ${NODE_MAJOR}.x sudah tersedia."
 fi
 
-# ─────────────────────────────────────────
-# 8. Clone repository
-# ─────────────────────────────────────────
-echo "📥 Clone repository..."
-if [ -d "$HOME/streamflow" ]; then
-    echo "⚠️  Folder streamflow sudah ada, melakukan pull terbaru..."
-    cd "$HOME/streamflow"
-    git pull
-else
-    git clone https://github.com/bangtutorial/streamflow "$HOME/streamflow"
-    cd "$HOME/streamflow"
+command -v node >/dev/null 2>&1 || die "Node.js tidak ditemukan setelah instalasi."
+command -v npm >/dev/null 2>&1 || die "npm tidak ditemukan setelah instalasi."
+
+NODE_VERSION="$(node -v)"
+NPM_VERSION="$(npm -v)"
+[[ "${NODE_VERSION#v}" == "${NODE_MAJOR}."* ]] || die "Versi Node tidak sesuai: ${NODE_VERSION}"
+
+ok "Node.js ${NODE_VERSION}"
+ok "npm ${NPM_VERSION}"
+
+if command -v pnpm >/dev/null 2>&1; then
+    warn "pnpm terdeteksi di server, tetapi installer StreamFlow tidak menggunakannya."
 fi
 
-# ─────────────────────────────────────────
-# 9. Install dependencies & build native modules
-# ─────────────────────────────────────────
-echo "⚙️ Installing dependencies..."
-pnpm install
+# ------------------------------------------------------------
+# 3. Repository
+# ------------------------------------------------------------
+if [[ -d "${APP_DIR}/.git" ]]; then
+    log "Repository StreamFlow sudah ada."
 
-echo "🔨 Approving & building native modules (sqlite3, bcrypt, ffmpeg)..."
-# Buat file .pnpmfile.cjs untuk allow semua build scripts secara otomatis
-cat > "$HOME/streamflow/.pnpmfile.cjs" << 'PNPMEOF'
-function readPackage(pkg, context) {
-  return pkg;
+    cd "${APP_DIR}"
+
+    if [[ -n "$(git status --porcelain)" ]]; then
+        die "Repository memiliki perubahan lokal. Backup/commit perubahan tersebut sebelum menjalankan installer upgrade."
+    fi
+
+    CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+    if [[ "${CURRENT_BRANCH}" != "main" ]]; then
+        warn "Branch saat ini: ${CURRENT_BRANCH}"
+        read -r -p "Tetap update branch ini? (y/N): " answer
+        [[ "${answer}" =~ ^[Yy]$ ]] || exit 1
+    fi
+
+    log "Mengambil update repository..."
+    git fetch --prune origin
+    git pull --ff-only
+else
+    if [[ -e "${APP_DIR}" ]]; then
+        die "${APP_DIR} sudah ada tetapi bukan repository Git StreamFlow."
+    fi
+
+    log "Clone repository StreamFlow..."
+    git clone "${REPO_URL}" "${APP_DIR}"
+    cd "${APP_DIR}"
+fi
+
+ok "Source StreamFlow siap di ${APP_DIR}"
+
+# ------------------------------------------------------------
+# 4. Environment / SESSION_SECRET
+# ------------------------------------------------------------
+cd "${APP_DIR}"
+
+if [[ ! -f .env ]]; then
+    log "Membuat .env..."
+    touch .env
+fi
+
+chmod 600 .env
+
+if ! grep -qE '^PORT=' .env; then
+    printf 'PORT=%s\n' "${DEFAULT_PORT}" >> .env
+fi
+
+if ! grep -qE '^SESSION_SECRET=.+$' .env; then
+    log "Membuat SESSION_SECRET baru..."
+    SECRET="$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")"
+    printf 'SESSION_SECRET=%s\n' "${SECRET}" >> .env
+else
+    ok "SESSION_SECRET existing dipertahankan."
+fi
+
+# Jangan menjalankan generate-secret.js pada setiap reinstall karena script
+# tersebut selalu mengganti SESSION_SECRET dan dapat menginvalidasi session.
+ok ".env siap."
+
+# ------------------------------------------------------------
+# 5. npm dependencies
+# ------------------------------------------------------------
+log "Membersihkan dependency manager lama jika ada..."
+rm -f .pnpmfile.cjs
+
+log "Menginstal dependency Node.js dengan npm..."
+npm install
+
+# Native modules are dependencies of the application.
+log "Memverifikasi native modules..."
+node - <<'NODE'
+const checks = [
+  ["sqlite3", () => require("sqlite3")],
+  ["bcrypt", () => require("bcrypt")],
+  ["express", () => require("express")],
+  ["@ffmpeg-installer/ffmpeg", () => require("@ffmpeg-installer/ffmpeg")],
+  ["@ffprobe-installer/ffprobe", () => require("@ffprobe-installer/ffprobe")]
+];
+
+let failed = false;
+
+for (const [name, fn] of checks) {
+  try {
+    const mod = fn();
+    if (name === "@ffmpeg-installer/ffmpeg" && !mod.path) throw new Error("FFmpeg binary path missing");
+    if (name === "@ffprobe-installer/ffprobe" && !mod.path) throw new Error("FFprobe binary path missing");
+    console.log(`OK ${name}`);
+  } catch (err) {
+    failed = true;
+    console.error(`FAIL ${name}: ${err.message}`);
+  }
 }
 
-module.exports = {
-  hooks: {
-    readPackage,
-  },
-};
-PNPMEOF
+if (failed) process.exit(1);
+NODE
 
-# Approve semua build scripts yang dibutuhkan
-pnpm approve-builds --all 2>/dev/null || true
+ok "Dependency dan native modules tervalidasi."
 
-# Reinstall dengan build scripts diizinkan
-pnpm install --ignore-scripts=false
+# ------------------------------------------------------------
+# 6. Generate / verify application directories and database
+# ------------------------------------------------------------
+mkdir -p db logs public/uploads
 
-# Pastikan sqlite3 native binary terkompilasi
-echo "🔨 Rebuilding sqlite3 native binary..."
-cd "$HOME/streamflow/node_modules/.pnpm/sqlite3@5.1.7/node_modules/sqlite3" 2>/dev/null && \
-    npm run install --build-from-source 2>/dev/null || \
-    node-pre-gyp install --fallback-to-build 2>/dev/null || true
-cd "$HOME/streamflow"
+# Do not change ownership of the whole home directory.
+# Ensure only application-owned paths are writable by the current user.
+chmod 755 db logs public/uploads
 
-# Pastikan bcrypt native binary terkompilasi
-echo "🔨 Rebuilding bcrypt native binary..."
-cd "$HOME/streamflow/node_modules/.pnpm/bcrypt@6.0.0/node_modules/bcrypt" 2>/dev/null && \
-    npm run install --build-from-source 2>/dev/null || true
-cd "$HOME/streamflow"
+# Quick application load test without starting a permanent server.
+log "Memeriksa apakah app.js dapat dimuat..."
+node --check app.js
+ok "Syntax app.js valid."
 
-pnpm run generate-secret
-
-# ─────────────────────────────────────────
-# 10. Setup timezone
-# ─────────────────────────────────────────
-echo "🕐 Setup timezone ke Asia/Jakarta..."
-sudo timedatectl set-timezone Asia/Jakarta
-
-# ─────────────────────────────────────────
-# 11. Setup firewall
-# ─────────────────────────────────────────
-echo "🔧 Setup firewall..."
-sudo ufw allow ssh
-sudo ufw allow 7575
-sudo ufw --force enable
-
-# ─────────────────────────────────────────
-# 12. Install PM2
-# ─────────────────────────────────────────
-
-# Reload PATH secara lengkap sebelum cek & install PM2
-export NVM_DIR="$HOME/.nvm"
-source "$NVM_DIR/nvm.sh"
-export PNPM_HOME="$HOME/.local/share/pnpm"
-export PATH="$PNPM_HOME:$NVM_DIR/versions/node/$(nvm current)/bin:$PATH"
-hash -r
-
-if command -v pm2 &> /dev/null; then
-    echo "✅ PM2 sudah terinstall, skip..."
+# ------------------------------------------------------------
+# 7. Timezone
+# ------------------------------------------------------------
+if command -v timedatectl >/dev/null 2>&1; then
+    CURRENT_TZ="$(timedatectl show --property=Timezone --value 2>/dev/null || true)"
+    if [[ "${CURRENT_TZ}" != "${TIMEZONE}" ]]; then
+        log "Mengatur timezone ke ${TIMEZONE}..."
+        sudo timedatectl set-timezone "${TIMEZONE}"
+    fi
+    ok "Timezone: ${TIMEZONE}"
 else
-    echo "🚀 Installing PM2..."
-    pnpm add -g pm2
-
-    # Reload PATH lagi setelah install agar pm2 langsung bisa dipakai
-    export PATH="$PNPM_HOME:$NVM_DIR/versions/node/$(nvm current)/bin:$PATH"
-    hash -r
+    warn "timedatectl tidak tersedia; timezone tidak diubah."
 fi
 
-# Verifikasi pm2 tersedia
-if ! command -v pm2 &> /dev/null; then
-    echo "❌ PM2 gagal ditemukan setelah instalasi. Coba jalankan manual:"
-    echo "   export PATH=\"$PNPM_HOME:\$PATH\" && pm2 --version"
-    exit 1
+# ------------------------------------------------------------
+# 8. Read application port from .env
+# ------------------------------------------------------------
+APP_PORT="$(awk -F= '$1=="PORT" {print $2; exit}' .env | tr -d '[:space:]')"
+APP_PORT="${APP_PORT:-${DEFAULT_PORT}}"
+
+[[ "${APP_PORT}" =~ ^[0-9]+$ ]] || die "PORT di .env tidak valid: ${APP_PORT}"
+(( APP_PORT >= 1 && APP_PORT <= 65535 )) || die "PORT di luar range: ${APP_PORT}"
+
+# ------------------------------------------------------------
+# 9. Firewall - protect SSH before enabling UFW
+# ------------------------------------------------------------
+log "Menyiapkan firewall..."
+
+SSH_PORT=""
+if command -v sshd >/dev/null 2>&1; then
+    SSH_PORT="$(sudo sshd -T 2>/dev/null | awk '$1=="port" {print $2; exit}' || true)"
 fi
 
-echo "✅ PM2 $(pm2 --version) berhasil disiapkan"
+if [[ -z "${SSH_PORT}" ]]; then
+    SSH_PORT="$(sudo ss -ltnp 2>/dev/null | awk '/sshd/ {split($4,a,":"); print a[length(a)]; exit}' || true)"
+fi
 
-# ─────────────────────────────────────────
-# 13. Start StreamFlow via PM2
-# ─────────────────────────────────────────
-echo "▶️ Starting StreamFlow..."
-cd "$HOME/streamflow"
+if [[ -z "${SSH_PORT}" ]]; then
+    warn "Port SSH tidak dapat dideteksi otomatis."
+    read -r -p "Masukkan port SSH yang sedang digunakan (default 22): " SSH_PORT
+    SSH_PORT="${SSH_PORT:-22}"
+fi
 
-# Jika sudah ada proses streamflow sebelumnya, delete dulu
-pm2 describe streamflow &> /dev/null && pm2 delete streamflow || true
+[[ "${SSH_PORT}" =~ ^[0-9]+$ ]] || die "Port SSH tidak valid: ${SSH_PORT}"
+(( SSH_PORT >= 1 && SSH_PORT <= 65535 )) || die "Port SSH di luar range: ${SSH_PORT}"
 
-pm2 start app.js --name streamflow
+# Add rules before enabling UFW so an SSH session is not intentionally
+# locked out by this installer.
+sudo ufw allow "${SSH_PORT}/tcp"
+sudo ufw allow "${APP_PORT}/tcp"
+
+if sudo ufw status | grep -q "Status: active"; then
+    ok "UFW sudah aktif; aturan SSH ${SSH_PORT}/tcp dan app ${APP_PORT}/tcp dipastikan tersedia."
+else
+    read -r -p "Aktifkan UFW sekarang? (Y/n): " answer
+    if [[ -z "${answer}" || "${answer}" =~ ^[Yy]$ ]]; then
+        sudo ufw --force enable
+        ok "UFW aktif."
+    else
+        warn "UFW tidak diaktifkan."
+    fi
+fi
+
+# ------------------------------------------------------------
+# 10. PM2 via npm
+# ------------------------------------------------------------
+if command -v pm2 >/dev/null 2>&1; then
+    ok "PM2 sudah tersedia: $(pm2 --version)"
+else
+    log "Memasang PM2 dengan npm..."
+    sudo npm install -g pm2
+fi
+
+command -v pm2 >/dev/null 2>&1 || die "PM2 gagal ditemukan."
+ok "PM2 $(pm2 --version)"
+
+# ------------------------------------------------------------
+# 11. Start / restart StreamFlow
+# ------------------------------------------------------------
+cd "${APP_DIR}"
+
+if pm2 describe "${APP_NAME}" >/dev/null 2>&1; then
+    log "Restart StreamFlow..."
+    pm2 restart "${APP_NAME}" --update-env
+else
+    log "Menjalankan StreamFlow..."
+    pm2 start app.js --name "${APP_NAME}" --time
+fi
+
 pm2 save
 
-# ─────────────────────────────────────────
-# 14. Setup PM2 startup (auto-start on reboot)
-# ─────────────────────────────────────────
-echo "🔁 Setup PM2 startup on boot..."
-PM2_STARTUP_CMD=$(pm2 startup systemd -u "$USER" --hp "$HOME" 2>&1 | grep "sudo env" | head -1)
-if [ -n "$PM2_STARTUP_CMD" ]; then
-    eval "sudo $PM2_STARTUP_CMD" || true
+# ------------------------------------------------------------
+# 12. PM2 startup
+# ------------------------------------------------------------
+log "Menyiapkan PM2 auto-start saat reboot..."
+
+# PM2 prints the exact systemd command. Extract only the expected sudo
+# command; do not pipe arbitrary output to `sudo bash`.
+STARTUP_CMD="$(pm2 startup systemd -u "${USER}" --hp "${HOME}" 2>&1 | \
+    sed -n 's/.*\(sudo env .*pm2 startup systemd.*\)/\1/p' | head -n 1 || true)"
+
+if [[ -n "${STARTUP_CMD}" ]]; then
+    log "Menerapkan PM2 systemd startup..."
+    eval "${STARTUP_CMD}"
 else
-    pm2 startup 2>&1 | tail -1 | sudo bash || true
+    warn "PM2 startup command tidak perlu diterapkan atau tidak ditemukan."
 fi
+
 pm2 save
+ok "PM2 startup tersimpan."
 
-# ─────────────────────────────────────────
-# 15. Selesai
-# ─────────────────────────────────────────
-echo
-echo "================================"
-echo "✅ INSTALASI SELESAI!"
-echo "================================"
+# ------------------------------------------------------------
+# 13. Runtime verification
+# ------------------------------------------------------------
+log "Menunggu StreamFlow siap..."
 
-SERVER_IP=$(curl -s ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}' || echo "IP_SERVER")
+READY=0
+for _ in {1..30}; do
+    if curl -fsS --max-time 3 "http://127.0.0.1:${APP_PORT}/" >/dev/null 2>&1; then
+        READY=1
+        break
+    fi
+
+    if ! pm2 pid "${APP_NAME}" >/dev/null 2>&1; then
+        break
+    fi
+
+    sleep 2
+done
+
+if [[ "${READY}" -ne 1 ]]; then
+    echo
+    warn "StreamFlow belum memberikan HTTP response."
+    echo "----- PM2 STATUS -----"
+    pm2 status || true
+    echo "----- PM2 LOGS (50) -----"
+    pm2 logs "${APP_NAME}" --lines 50 --nostream || true
+    die "Health/readiness check gagal. Lihat log di atas."
+fi
+
+ok "StreamFlow merespons HTTP pada port ${APP_PORT}."
+
+# ------------------------------------------------------------
+# 14. Final summary
+# ------------------------------------------------------------
+SERVER_IP="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+SERVER_IP="${SERVER_IP:-$(curl -4 -fsS --max-time 5 ifconfig.me 2>/dev/null || echo 'SERVER_IP')}"
 
 echo
-echo "🌐 URL Akses: http://$SERVER_IP:7575"
-echo "📦 Node.js: $(node -v)"
-echo "📦 pnpm: $(pnpm -v)"
-echo "📦 PM2: $(pm2 --version)"
+echo "=============================================="
+echo "        STREAMFLOW SIAP DIGUNAKAN"
+echo "=============================================="
+echo "URL       : http://${SERVER_IP}:${APP_PORT}"
+echo "Directory : ${APP_DIR}"
+echo "Node      : $(node -v)"
+echo "npm       : $(npm -v)"
+echo "FFmpeg    : $(ffmpeg -version 2>&1 | head -n 1)"
+echo "PM2       : $(pm2 --version)"
+echo "SSH port  : ${SSH_PORT}"
+echo "App port  : ${APP_PORT}"
+echo "Timezone  : ${TIMEZONE}"
+echo "=============================================="
 echo
-echo "📋 Langkah selanjutnya:"
-echo "1. Buka URL di browser"
-echo "2. Buat username & password"
-echo "3. Setelah membuat akun, lakukan Sign Out kemudian login kembali untuk sinkronisasi database"
-echo "================================"
+echo "Status : pm2 status"
+echo "Logs   : pm2 logs ${APP_NAME}"
+echo "Restart: pm2 restart ${APP_NAME}"
 echo
-echo "💡 Tip: Untuk cek status app kapan saja, jalankan:"
-echo "   source ~/.bashrc && pm2 status"
-echo "================================"
+echo "Catatan: installer ini sengaja TIDAK menggunakan pnpm."
+echo "Catatan: SESSION_SECRET existing tidak diubah saat reinstall."
+echo "=============================================="
