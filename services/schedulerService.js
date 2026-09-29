@@ -8,6 +8,8 @@ let streamingService = null;
 let initialized = false;
 let scheduleIntervalId = null;
 let durationIntervalId = null;
+let scheduledCheckInProgress = false;
+let durationCheckInProgress = false;
 
 function init(streamingServiceInstance) {
   if (initialized) {
@@ -26,6 +28,12 @@ function init(streamingServiceInstance) {
 }
 
 async function checkScheduledStreams() {
+  if (scheduledCheckInProgress) {
+    return;
+  }
+
+  scheduledCheckInProgress = true;
+
   try {
     if (!streamingService) {
       return;
@@ -53,10 +61,18 @@ async function checkScheduledStreams() {
     }
   } catch (error) {
     console.error('[Scheduler] Error checking scheduled streams:', error);
+  } finally {
+    scheduledCheckInProgress = false;
   }
 }
 
 async function checkStreamDurations() {
+  if (durationCheckInProgress) {
+    return;
+  }
+
+  durationCheckInProgress = true;
+
   try {
     if (!streamingService) {
       return;
@@ -87,6 +103,8 @@ async function checkStreamDurations() {
     }
   } catch (error) {
     console.error('[Scheduler] Error checking stream durations:', error);
+  } finally {
+    durationCheckInProgress = false;
   }
 }
 
