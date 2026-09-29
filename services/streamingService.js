@@ -45,6 +45,7 @@ const MAX_RETRY_DELAY = 30000;
 const HEALTH_CHECK_INTERVAL = 30000;
 const SYNC_INTERVAL = 60000;
 const STREAM_START_TIMEOUT = 15000;
+const FFPROBE_TIMEOUT = 30000;
 
 const YOUTUBE_COPY_ALLOWED_VIDEO_CODECS = new Set(['h264']);
 const YOUTUBE_COPY_ALLOWED_AUDIO_CODECS = new Set(['aac', 'mp3']);
@@ -95,12 +96,19 @@ function getProjectRoot() {
 }
 
 function resolvePublicFilePath(relativePath) {
-  if (!relativePath) {
+  if (!relativePath || typeof relativePath !== 'string') {
     throw new Error('Missing media filepath');
   }
 
-  const relPath = relativePath.startsWith('/') ? relativePath.substring(1) : relativePath;
-  return path.join(getProjectRoot(), 'public', relPath);
+  const publicRoot = path.resolve(getProjectRoot(), 'public');
+  const relPath = relativePath.replace(/^[/\\]+/, '');
+  const resolvedPath = path.resolve(publicRoot, relPath);
+
+  if (resolvedPath !== publicRoot && !resolvedPath.startsWith(`${publicRoot}${path.sep}`)) {
+    throw new Error('Invalid media filepath');
+  }
+
+  return resolvedPath;
 }
 
 function isYouTubeDestination(stream) {
@@ -191,6 +199,25 @@ function runFFprobe(filePath) {
 
     let stdout = '';
     let stderr = '';
+    let settled = false;
+
+    const finish = (callback) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      callback();
+    };
+
+    const timeoutId = setTimeout(() => {
+      try {
+        if (ffprobeProcess.exitCode === null) {
+          ffprobeProcess.kill('SIGKILL');
+        }
+      } catch (e) {
+        // Process may already have exited.
+      }
+      finish(() => reject(new Error(`ffprobe timeout setelah ${FFPROBE_TIMEOUT / 1000} detik`)));
+    }, FFPROBE_TIMEOUT);
 
     ffprobeProcess.stdout.on('data', (data) => {
       stdout += data.toString();
@@ -201,19 +228,21 @@ function runFFprobe(filePath) {
     });
 
     ffprobeProcess.on('error', (error) => {
-      reject(error);
+      finish(() => reject(error));
     });
 
     ffprobeProcess.on('exit', (code) => {
-      if (code !== 0) {
-        return reject(new Error(stderr.trim() || `ffprobe exited with code ${code}`));
-      }
+      finish(() => {
+        if (code !== 0) {
+          return reject(new Error(stderr.trim() || `ffprobe exited with code ${code}`));
+        }
 
-      try {
-        resolve(JSON.parse(stdout));
-      } catch (error) {
-        reject(error);
-      }
+        try {
+          resolve(JSON.parse(stdout));
+        } catch (error) {
+          reject(error);
+        }
+      });
     });
   });
 }
@@ -414,8 +443,7 @@ async function buildFFmpegArgsForPlaylist(stream, playlist) {
   const videos = playlist.is_shuffle ? shuffleArray(playlist.videos) : playlist.videos;
 
   for (const video of videos) {
-    const relPath = video.filepath.startsWith('/') ? video.filepath.substring(1) : video.filepath;
-    const fullPath = path.join(projectRoot, 'public', relPath);
+    const fullPath = resolvePublicFilePath(video.filepath);
     if (!fs.existsSync(fullPath)) {
       throw new Error(`Video file not found: ${fullPath}`);
     }
@@ -498,8 +526,7 @@ async function buildFFmpegArgsForPlaylist(stream, playlist) {
   const audios = playlist.is_shuffle ? shuffleArray(playlist.audios) : playlist.audios;
 
   for (const audio of audios) {
-    const relPath = audio.filepath.startsWith('/') ? audio.filepath.substring(1) : audio.filepath;
-    const fullPath = path.join(projectRoot, 'public', relPath);
+    const fullPath = resolvePublicFilePath(audio.filepath);
     if (!fs.existsSync(fullPath)) {
       throw new Error(`Audio file not found: ${fullPath}`);
     }
@@ -597,9 +624,7 @@ async function buildFFmpegArgs(stream) {
     throw new Error('Video not found');
   }
 
-  const relPath = video.filepath.startsWith('/') ? video.filepath.substring(1) : video.filepath;
-  const projectRoot = path.resolve(__dirname, '..');
-  const videoPath = path.join(projectRoot, 'public', relPath);
+  const videoPath = resolvePublicFilePath(video.filepath);
 
   if (!fs.existsSync(videoPath)) {
     throw new Error(`Video file not found: ${videoPath}`);
