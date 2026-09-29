@@ -1,11 +1,11 @@
 /*
- * StreamFlow v2.1 - Live Streaming Lewat VPS
+ * StreamFlow v4 - Live Streaming Lewat VPS
  * 
  * Custom Features & UI Components
- * Created by: Bang Tutorial
+ * Modifed by: Ilyas Ahmad Amaki
  * GitHub: https://github.com/bangtutorial
 
- * © 2026 Bang Tutorial - All rights reserved
+ * © 2027 Ilyas Ahmad Almaki - All rights reserved
  */
 
 @font-face {
@@ -71,7 +71,7 @@
 }
 
 :root {
-  --primary-color: #0055FF;
+  --primary-color: #F4FF05;
 }
 
 body {
