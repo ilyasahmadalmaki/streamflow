@@ -4,6 +4,7 @@ const User = require('../models/User');
 const streamingService = require('./streamingService');
 const { google } = require('googleapis');
 const { decrypt } = require('../utils/encryption');
+const YoutubeOAuthCredential = require('../models/YoutubeOAuthCredential');
 const path = require('path');
 const fs = require('fs');
 const { syncBroadcastMonetization } = require('./youtubeService');
@@ -306,9 +307,24 @@ async function startRotationStream(rotation, item) {
       return { success: false, error: 'YouTube not connected' };
     }
 
+    if (!selectedChannel.oauth_credential_id) {
+      console.error('[RotationService] YouTube channel is not linked to an OAuth credential');
+      return { success: false, error: 'YouTube channel is not linked to an OAuth credential' };
+    }
+
+    const oauthCredential = await YoutubeOAuthCredential.findByIdAndUser(
+      selectedChannel.oauth_credential_id,
+      rotation.user_id
+    );
+
+    if (!oauthCredential) {
+      console.error('[RotationService] YouTube OAuth credential not found');
+      return { success: false, error: 'YouTube OAuth credential not found' };
+    }
+
     const oauth2Client = new google.auth.OAuth2(
-      user.youtube_client_id,
-      decrypt(user.youtube_client_secret),
+      oauthCredential.client_id,
+      decrypt(oauthCredential.client_secret),
       getRedirectUri(user)
     );
 
@@ -495,9 +511,24 @@ async function stopRotationStream(rotation, item) {
           }
 
           if (selectedChannel && selectedChannel.access_token) {
+            if (!selectedChannel.oauth_credential_id) {
+              console.error('[RotationService] YouTube channel is not linked to an OAuth credential');
+              return { success: false, error: 'YouTube channel is not linked to an OAuth credential' };
+            }
+
+            const oauthCredential = await YoutubeOAuthCredential.findByIdAndUser(
+              selectedChannel.oauth_credential_id,
+              user.id
+            );
+
+            if (!oauthCredential) {
+              console.error('[RotationService] YouTube OAuth credential not found');
+              return { success: false, error: 'YouTube OAuth credential not found' };
+            }
+
             const oauth2Client = new google.auth.OAuth2(
-              user.youtube_client_id,
-              decrypt(user.youtube_client_secret),
+              oauthCredential.client_id,
+              decrypt(oauthCredential.client_secret),
               getRedirectUri(user)
             );
 

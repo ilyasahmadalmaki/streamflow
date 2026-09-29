@@ -3,6 +3,7 @@ const { encrypt, decrypt } = require('../utils/encryption');
 const User = require('../models/User');
 const Stream = require('../models/Stream');
 const YoutubeChannel = require('../models/YoutubeChannel');
+const YoutubeOAuthCredential = require('../models/YoutubeOAuthCredential');
 const fs = require('fs');
 const path = require('path');
 
@@ -111,8 +112,8 @@ async function createYouTubeBroadcast(streamId, baseUrl) {
   }
 
   const user = await User.findById(stream.user_id);
-  if (!user || !user.youtube_client_id || !user.youtube_client_secret) {
-    throw new Error('YouTube API credentials not configured');
+  if (!user) {
+    throw new Error('User not found');
   }
 
   const selectedChannel = await YoutubeChannel.findById(stream.youtube_channel_id);
@@ -120,7 +121,20 @@ async function createYouTubeBroadcast(streamId, baseUrl) {
     throw new Error('YouTube channel not found or not connected');
   }
 
-  const clientSecret = decrypt(user.youtube_client_secret);
+  if (!selectedChannel.oauth_credential_id) {
+    throw new Error('YouTube channel is not linked to an OAuth credential');
+  }
+
+  const oauthCredential = await YoutubeOAuthCredential.findByIdAndUser(
+    selectedChannel.oauth_credential_id,
+    stream.user_id
+  );
+
+  if (!oauthCredential) {
+    throw new Error('YouTube OAuth credential not found');
+  }
+
+  const clientSecret = decrypt(oauthCredential.client_secret);
   const accessToken = decrypt(selectedChannel.access_token);
   const refreshToken = decrypt(selectedChannel.refresh_token);
 
@@ -129,7 +143,11 @@ async function createYouTubeBroadcast(streamId, baseUrl) {
   }
 
   const redirectUri = `${baseUrl}/auth/youtube/callback`;
-  const oauth2Client = getYouTubeOAuth2Client(user.youtube_client_id, clientSecret, redirectUri);
+  const oauth2Client = getYouTubeOAuth2Client(
+    oauthCredential.client_id,
+    clientSecret,
+    redirectUri
+  );
   oauth2Client.setCredentials({
     access_token: accessToken,
     refresh_token: refreshToken

@@ -2281,6 +2281,215 @@ app.post('/api/settings/gdrive-api-key', isAuthenticated, [
 });
 
 const { encrypt, decrypt } = require('./utils/encryption');
+const YoutubeOAuthCredential = require('./models/YoutubeOAuthCredential');
+
+// YouTube OAuth credentials - multi credential support
+app.get('/api/settings/youtube-oauth-credentials', isAuthenticated, async (req, res) => {
+  try {
+    const credentials = await YoutubeOAuthCredential.findAll(req.session.userId);
+
+    const safeCredentials = credentials.map(credential => ({
+      id: credential.id,
+      name: credential.name,
+      clientId: credential.client_id,
+      clientSecret: '••••••••••••••••',
+      channelCount: Number(credential.channel_count || 0),
+      createdAt: credential.created_at,
+      updatedAt: credential.updated_at
+    }));
+
+    return res.json({
+      success: true,
+      credentials: safeCredentials
+    });
+  } catch (error) {
+    console.error('Error loading YouTube OAuth credentials:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to load YouTube OAuth credentials'
+    });
+  }
+});
+
+app.post('/api/settings/youtube-oauth-credentials', isAuthenticated, [
+  body('clientId').notEmpty().withMessage('Client ID is required'),
+  body('clientSecret').notEmpty().withMessage('Client Secret is required')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: errors.array()[0].msg
+      });
+    }
+
+    const clientId = req.body.clientId.trim();
+    const clientSecret = req.body.clientSecret.trim();
+    const requestedName = typeof req.body.name === 'string'
+      ? req.body.name.trim()
+      : '';
+
+    if (!clientId || !clientSecret) {
+      return res.status(400).json({
+        success: false,
+        error: 'Client ID and Client Secret are required'
+      });
+    }
+
+    const existingCount = await YoutubeOAuthCredential.count(req.session.userId);
+
+    const name = requestedName || `OAuth Credential #${existingCount + 1}`;
+    const encryptedSecret = encrypt(clientSecret);
+
+    const credential = await YoutubeOAuthCredential.create({
+      user_id: req.session.userId,
+      name,
+      client_id: clientId,
+      client_secret: encryptedSecret
+    });
+
+    return res.json({
+      success: true,
+      message: 'YouTube OAuth credential created successfully',
+      credential: {
+        id: credential.id,
+        name: credential.name,
+        clientId: credential.client_id,
+        clientSecret: '••••••••••••••••',
+        channelCount: 0
+      }
+    });
+  } catch (error) {
+    console.error('Error creating YouTube OAuth credential:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to create YouTube OAuth credential'
+    });
+  }
+});
+
+app.put('/api/settings/youtube-oauth-credentials/:id', isAuthenticated, async (req, res) => {
+  try {
+    const credentialId = req.params.id;
+
+    const existingCredential = await YoutubeOAuthCredential.findByIdAndUser(
+      credentialId,
+      req.session.userId
+    );
+
+    if (!existingCredential) {
+      return res.status(404).json({
+        success: false,
+        error: 'YouTube OAuth credential not found'
+      });
+    }
+
+    const updateData = {};
+
+    if (typeof req.body.name === 'string') {
+      const name = req.body.name.trim();
+
+      if (!name) {
+        return res.status(400).json({
+          success: false,
+          error: 'Credential name cannot be empty'
+        });
+      }
+
+      updateData.name = name;
+    }
+
+    if (typeof req.body.clientId === 'string') {
+      const clientId = req.body.clientId.trim();
+
+      if (!clientId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Client ID cannot be empty'
+        });
+      }
+
+      updateData.client_id = clientId;
+    }
+
+    if (typeof req.body.clientSecret === 'string' && req.body.clientSecret.trim()) {
+      const clientSecret = req.body.clientSecret.trim();
+
+      if (clientSecret !== '••••••••••••••••') {
+        updateData.client_secret = encrypt(clientSecret);
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No changes provided'
+      });
+    }
+
+    const updated = await YoutubeOAuthCredential.update(
+      credentialId,
+      req.session.userId,
+      updateData
+    );
+
+    return res.json({
+      success: true,
+      message: 'YouTube OAuth credential updated successfully',
+      credential: {
+        id: credentialId,
+        name: updated.name !== undefined
+          ? updated.name
+          : existingCredential.name,
+        clientId: updated.client_id !== undefined
+          ? updated.client_id
+          : existingCredential.client_id,
+        clientSecret: '••••••••••••••••'
+      }
+    });
+  } catch (error) {
+    console.error('Error updating YouTube OAuth credential:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to update YouTube OAuth credential'
+    });
+  }
+});
+
+app.delete('/api/settings/youtube-oauth-credentials/:id', isAuthenticated, async (req, res) => {
+  try {
+    const result = await YoutubeOAuthCredential.delete(
+      req.params.id,
+      req.session.userId
+    );
+
+    if (result.inUse) {
+      return res.status(409).json({
+        success: false,
+        error: `Credential is still used by ${result.channelCount} YouTube channel(s)`
+      });
+    }
+
+    if (!result.deleted) {
+      return res.status(404).json({
+        success: false,
+        error: 'YouTube OAuth credential not found'
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'YouTube OAuth credential deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting YouTube OAuth credential:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to delete YouTube OAuth credential'
+    });
+  }
+});
 
 app.post('/api/settings/youtube-credentials', isAuthenticated, [
   body('clientId').notEmpty().withMessage('Client ID is required'),
@@ -2538,36 +2747,60 @@ function getYouTubeOAuth2Client(clientId, clientSecret, redirectUri) {
 
 app.get('/auth/youtube', isAuthenticated, async (req, res) => {
   try {
-    const user = await User.findById(req.session.userId);
-    
-    if (!user.youtube_client_id || !user.youtube_client_secret) {
-      return res.redirect('/settings?error=Please save your YouTube API credentials first&activeTab=integration');
+    const credentialId = typeof req.query.credential_id === 'string'
+      ? req.query.credential_id.trim()
+      : '';
+
+    if (!credentialId) {
+      return res.redirect('/settings?error=Please select a YouTube OAuth credential first&activeTab=integration');
     }
-    
-    const clientSecret = decrypt(user.youtube_client_secret);
+
+    const oauthCredential = await YoutubeOAuthCredential.findByIdAndUser(
+      credentialId,
+      req.session.userId
+    );
+
+    if (!oauthCredential) {
+      return res.redirect('/settings?error=YouTube OAuth credential not found&activeTab=integration');
+    }
+
+    const clientSecret = decrypt(oauthCredential.client_secret);
+
     if (!clientSecret) {
-      return res.redirect('/settings?error=Failed to decrypt credentials&activeTab=integration');
+      return res.redirect('/settings?error=Failed to decrypt YouTube OAuth credential&activeTab=integration');
     }
-    
+
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.get('host');
     const redirectUri = `${protocol}://${host}/auth/youtube/callback`;
-    
-    const oauth2Client = getYouTubeOAuth2Client(user.youtube_client_id, clientSecret, redirectUri);
-    
+
+    const oauth2Client = getYouTubeOAuth2Client(
+      oauthCredential.client_id,
+      clientSecret,
+      redirectUri
+    );
+
     const scopes = [
       'https://www.googleapis.com/auth/youtube.readonly',
       'https://www.googleapis.com/auth/youtube.force-ssl',
       'https://www.googleapis.com/auth/youtube'
     ];
-    
+
+    const oauthState = uuidv4();
+
+    req.session.youtubeOAuthState = {
+      value: oauthState,
+      credentialId,
+      createdAt: Date.now()
+    };
+
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: scopes,
       prompt: 'consent',
-      state: req.session.userId
+      state: oauthState
     });
-    
+
     res.redirect(authUrl);
   } catch (error) {
     console.error('YouTube OAuth error:', error);
@@ -2578,59 +2811,107 @@ app.get('/auth/youtube', isAuthenticated, async (req, res) => {
 app.get('/auth/youtube/callback', isAuthenticated, async (req, res) => {
   try {
     const { code, error, state } = req.query;
-    
+
+    const storedState = req.session.youtubeOAuthState;
+
+    // Consume the OAuth state immediately so it cannot be replayed.
+    delete req.session.youtubeOAuthState;
+
     if (error) {
       console.error('YouTube OAuth error:', error);
       return res.redirect(`/settings?error=${encodeURIComponent(error)}&activeTab=integration`);
     }
-    
+
     if (!code) {
       return res.redirect('/settings?error=No authorization code received&activeTab=integration');
     }
-    
-    const user = await User.findById(req.session.userId);
-    
-    if (!user.youtube_client_id || !user.youtube_client_secret) {
-      return res.redirect('/settings?error=YouTube credentials not found&activeTab=integration');
+
+    if (
+      !storedState ||
+      !state ||
+      state !== storedState.value ||
+      !storedState.credentialId
+    ) {
+      return res.redirect('/settings?error=Invalid or expired YouTube OAuth state&activeTab=integration');
     }
-    
-    const clientSecret = decrypt(user.youtube_client_secret);
+
+    // OAuth state should not remain valid indefinitely.
+    const stateAge = Date.now() - Number(storedState.createdAt || 0);
+    const maxStateAge = 10 * 60 * 1000;
+
+    if (
+      !Number.isFinite(stateAge) ||
+      stateAge < 0 ||
+      stateAge > maxStateAge
+    ) {
+      return res.redirect('/settings?error=YouTube OAuth session expired&activeTab=integration');
+    }
+
+    const oauthCredential = await YoutubeOAuthCredential.findByIdAndUser(
+      storedState.credentialId,
+      req.session.userId
+    );
+
+    if (!oauthCredential) {
+      return res.redirect('/settings?error=YouTube OAuth credential not found&activeTab=integration');
+    }
+
+    const clientSecret = decrypt(oauthCredential.client_secret);
+
     if (!clientSecret) {
-      return res.redirect('/settings?error=Failed to decrypt credentials&activeTab=integration');
+      return res.redirect('/settings?error=Failed to decrypt YouTube OAuth credential&activeTab=integration');
     }
-    
+
     const protocol = req.headers['x-forwarded-proto'] || req.protocol;
     const host = req.headers['x-forwarded-host'] || req.get('host');
     const redirectUri = `${protocol}://${host}/auth/youtube/callback`;
-    
-    const oauth2Client = getYouTubeOAuth2Client(user.youtube_client_id, clientSecret, redirectUri);
-    
+
+    const oauth2Client = getYouTubeOAuth2Client(
+      oauthCredential.client_id,
+      clientSecret,
+      redirectUri
+    );
+
     const { tokens } = await oauth2Client.getToken(code);
     oauth2Client.setCredentials(tokens);
-    
+
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+
     const channelResponse = await youtube.channels.list({
       part: 'snippet,statistics',
       mine: true
     });
-    
+
     if (!channelResponse.data.items || channelResponse.data.items.length === 0) {
       return res.redirect('/settings?error=No YouTube channel found for this account&activeTab=integration');
     }
-    
+
     const channel = channelResponse.data.items[0];
     const channelId = channel.id;
     const channelName = channel.snippet.title;
-    const channelThumbnail = channel.snippet.thumbnails?.default?.url || channel.snippet.thumbnails?.medium?.url || '';
-    const subscriberCount = channel.statistics?.subscriberCount || '0';
-    
+    const channelThumbnail =
+      channel.snippet.thumbnails?.default?.url ||
+      channel.snippet.thumbnails?.medium?.url ||
+      '';
+    const subscriberCount =
+      channel.statistics?.subscriberCount || '0';
+
     const YoutubeChannel = require('./models/YoutubeChannel');
-    const existingChannel = await YoutubeChannel.findByChannelId(req.session.userId, channelId);
-    
+
+    const existingChannel = await YoutubeChannel.findByChannelId(
+      req.session.userId,
+      channelId
+    );
+
     if (existingChannel) {
       await YoutubeChannel.update(existingChannel.id, {
-        access_token: encrypt(tokens.access_token),
-        refresh_token: tokens.refresh_token ? encrypt(tokens.refresh_token) : existingChannel.refresh_token,
+        oauth_credential_id: oauthCredential.id,
+        access_token: tokens.access_token
+          ? encrypt(tokens.access_token)
+          : existingChannel.access_token,
+        refresh_token: tokens.refresh_token
+          ? encrypt(tokens.refresh_token)
+          : existingChannel.refresh_token,
         channel_name: channelName,
         channel_thumbnail: channelThumbnail,
         subscriber_count: subscriberCount
@@ -2638,24 +2919,33 @@ app.get('/auth/youtube/callback', isAuthenticated, async (req, res) => {
     } else {
       await YoutubeChannel.create({
         user_id: req.session.userId,
+        oauth_credential_id: oauthCredential.id,
         channel_id: channelId,
         channel_name: channelName,
         channel_thumbnail: channelThumbnail,
         subscriber_count: subscriberCount,
-        access_token: encrypt(tokens.access_token),
-        refresh_token: tokens.refresh_token ? encrypt(tokens.refresh_token) : null
+        access_token: tokens.access_token
+          ? encrypt(tokens.access_token)
+          : null,
+        refresh_token: tokens.refresh_token
+          ? encrypt(tokens.refresh_token)
+          : null
       });
     }
-    
+
     await User.update(req.session.userId, {
       youtube_redirect_uri: redirectUri
     });
-    
+
     res.redirect('/settings?success=YouTube channel connected successfully&activeTab=integration');
   } catch (error) {
     console.error('YouTube OAuth callback error:', error);
-    const errorMessage = error.message || 'Failed to connect YouTube account';
-    res.redirect(`/settings?error=${encodeURIComponent(errorMessage)}&activeTab=integration`);
+    const errorMessage =
+      error.message || 'Failed to connect YouTube account';
+
+    res.redirect(
+      `/settings?error=${encodeURIComponent(errorMessage)}&activeTab=integration`
+    );
   }
 });
 
@@ -3436,12 +3726,6 @@ app.post('/api/streams/youtube', isAuthenticated, uploadThumbnail.single('thumbn
     const user = await User.findById(req.session.userId);
     const YoutubeChannel = require('./models/YoutubeChannel');
     
-    if (!user.youtube_client_id || !user.youtube_client_secret) {
-      return res.status(400).json({ 
-        success: false, 
-        error: 'YouTube API credentials not configured.' 
-      });
-    }
     const { videoId, title, description, privacy, category, tags, loopVideo, scheduleStartTime, scheduleEndTime, repeat, ytChannelId, ytMonetization } = req.body;
     
     let selectedChannel;
@@ -3462,6 +3746,25 @@ app.post('/api/streams/youtube', isAuthenticated, uploadThumbnail.single('thumbn
       return res.status(400).json({ 
         success: false, 
         error: 'YouTube account not connected. Please connect your YouTube account in Settings.' 
+      });
+    }
+
+    if (!selectedChannel.oauth_credential_id) {
+      return res.status(400).json({
+        success: false,
+        error: 'YouTube channel is not linked to an OAuth credential.'
+      });
+    }
+
+    const oauthCredential = await YoutubeOAuthCredential.findByIdAndUser(
+      selectedChannel.oauth_credential_id,
+      req.session.userId
+    );
+
+    if (!oauthCredential) {
+      return res.status(400).json({
+        success: false,
+        error: 'YouTube OAuth credential not found.'
       });
     }
     
