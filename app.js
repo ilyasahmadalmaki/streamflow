@@ -37,30 +37,21 @@ const streamingService = require('./services/streamingService');
 const schedulerService = require('./services/schedulerService');
 const packageJson = require('./package.json');
 ffmpeg.setFfmpegPath(ffmpegInstaller.path);
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('-----------------------------------');
+  console.error('UNHANDLED REJECTION AT:', promise);
+  console.error('REASON:', reason);
+  console.error('-----------------------------------');
+});
+process.on('uncaughtException', (error) => {
+  console.error('-----------------------------------');
+  console.error('UNCAUGHT EXCEPTION:', error);
+  console.error('-----------------------------------');
+});
 const app = express();
-app.set('trust proxy', 1);
-app.disable('x-powered-by');
-
-const port = Number(process.env.PORT) || 7575;
-const sessionSecret = process.env.SESSION_SECRET;
-if (!sessionSecret || sessionSecret.length < 32) {
-  console.error('SESSION_SECRET is required and must be at least 32 characters long.');
-  process.exit(1);
-}
-
+app.set("trust proxy", 1);
+const port = process.env.PORT || 7575;
 const tokens = new csrf();
-
-const escapeHtml = (value) => String(value ?? '')
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;');
-
-const isSafeAvatarPath = (value) => {
-  if (typeof value !== 'string') return false;
-  return /^\/uploads\/avatars\/[A-Za-z0-9._-]+$/.test(value);
-};
 
 ensureDirectories();
 app.locals.helpers = {
@@ -73,9 +64,8 @@ app.locals.helpers = {
   getAvatar: function (req) {
     if (req.session && req.session.userId) {
       const avatarPath = req.session.avatar_path;
-      const username = escapeHtml(req.session.username || 'User');
-      if (isSafeAvatarPath(avatarPath)) {
-        return `<img src="${escapeHtml(avatarPath)}" alt="${username}'s Profile" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='/images/default-avatar.jpg';">`;
+      if (avatarPath) {
+        return `<img src="${avatarPath}" alt="${req.session.username || 'User'}'s Profile" class="w-full h-full object-cover" onerror="this.onerror=null; this.src='/images/default-avatar.jpg';">`;
       }
     }
     return '<img src="/images/default-avatar.jpg" alt="Default Profile" class="w-full h-full object-cover">';
@@ -127,31 +117,19 @@ app.locals.helpers = {
     return `${hours}:${minutes}:${secs}`;
   }
 };
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  }
-  next();
-});
-
 app.use(session({
   store: new SQLiteStore({
     db: 'sessions.db',
     dir: path.join(__dirname, 'db'),
     table: 'sessions'
   }),
-  secret: sessionSecret,
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   rolling: true,
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
@@ -211,34 +189,16 @@ app.use('/uploads', function (req, res, next) {
   res.header('Expires', '0');
   next();
 });
-app.use(express.urlencoded({ extended: true, limit: '2mb' }));
-app.use(express.json({ limit: '2mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50gb' }));
+app.use(express.json({ limit: '50gb' }));
 
 const csrfProtection = function (req, res, next) {
-  const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS']);
-  if (safeMethods.has(req.method)) {
-    return next();
-  }
-
   if ((req.path === '/login' && req.method === 'POST') ||
     (req.path === '/setup-account' && req.method === 'POST')) {
     return next();
   }
-
-  // Multipart requests are validated after Multer has parsed req.body.
-  // Upload routes below explicitly include csrfProtection after Multer.
-  if (req.is('multipart/form-data')) {
-    return next();
-  }
-
-  const token = req.body?._csrf || req.query._csrf || req.headers['x-csrf-token'];
-  if (!req.session || !req.session.csrfSecret || !token || !tokens.verify(req.session.csrfSecret, token)) {
-    if (req.path.startsWith('/api/') || req.is('application/json')) {
-      return res.status(403).json({
-        success: false,
-        error: 'CSRF validation failed. Please refresh the page and try again.'
-      });
-    }
+  const token = req.body._csrf || req.query._csrf || req.headers['x-csrf-token'];
+  if (!token || !tokens.verify(req.session.csrfSecret, token)) {
     return res.status(403).render('error', {
       title: 'Error',
       error: 'CSRF validation failed. Please try again.'
@@ -246,8 +206,6 @@ const csrfProtection = function (req, res, next) {
   }
   next();
 };
-
-app.use(csrfProtection);
 const isAuthenticated = (req, res, next) => {
   if (req.session.userId) {
     return next();
@@ -344,7 +302,7 @@ app.get('/login', async (req, res) => {
     });
   }
 });
-app.post('/login', loginDelayMiddleware, loginLimiter, async (req, res, next) => {
+app.post('/login', loginDelayMiddleware, loginLimiter, async (req, res) => {
   const { username, password } = req.body;
   const recaptchaResponse = req.body['g-recaptcha-response'];
   
@@ -405,21 +363,11 @@ app.post('/login', loginDelayMiddleware, loginLimiter, async (req, res, next) =>
       });
     }
     
-    await new Promise((resolve, reject) => {
-      req.session.regenerate((err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-
     req.session.userId = user.id;
     req.session.username = user.username;
     req.session.avatar_path = user.avatar_path;
     req.session.user_role = user.user_role;
-    req.session.save((err) => {
-      if (err) return next(err);
-      res.redirect('/dashboard');
-    });
+    res.redirect('/dashboard');
   } catch (error) {
     console.error('Login error:', error);
     res.render('login', {
@@ -464,7 +412,7 @@ app.get('/signup', async (req, res) => {
   }
 });
 
-app.post('/signup', upload.single('avatar'), csrfProtection, async (req, res) => {
+app.post('/signup', upload.single('avatar'), async (req, res) => {
   const { username, password, confirmPassword, user_role, status } = req.body;
   const recaptchaResponse = req.body['g-recaptcha-response'];
   
@@ -600,7 +548,7 @@ app.get('/setup-account', async (req, res) => {
     res.redirect('/login');
   }
 });
-app.post('/setup-account', upload.single('avatar'), csrfProtection, [
+app.post('/setup-account', upload.single('avatar'), [
   body('username')
     .trim()
     .isLength({ min: 3, max: 20 })
@@ -1345,7 +1293,7 @@ app.post('/api/users/delete', isAdmin, async (req, res) => {
   }
 });
 
-app.post('/api/users/update', isAdmin, upload.single('avatar'), csrfProtection, async (req, res) => {
+app.post('/api/users/update', isAdmin, upload.single('avatar'), async (req, res) => {
   try {
     const { userId, username, role, status, password, diskLimit } = req.body;
     
@@ -1397,7 +1345,7 @@ app.post('/api/users/update', isAdmin, upload.single('avatar'), csrfProtection, 
   }
 });
 
-app.post('/api/users/create', isAdmin, upload.single('avatar'), csrfProtection, async (req, res) => {
+app.post('/api/users/create', isAdmin, upload.single('avatar'), async (req, res) => {
   try {
     const { username, role, status, password, diskLimit } = req.body;
     
@@ -1512,7 +1460,7 @@ app.post('/settings/profile', isAuthenticated, (req, res, next) => {
     }
     next();
   });
-}, csrfProtection, [
+}, [
   body('username')
     .trim()
     .isLength({ min: 3, max: 20 })
@@ -1720,7 +1668,7 @@ app.post('/settings/integrations/gdrive', isAuthenticated, [
     });
   }
 });
-app.post('/upload/video', isAuthenticated, uploadVideo.single('video'), csrfProtection, async (req, res) => {
+app.post('/upload/video', isAuthenticated, uploadVideo.single('video'), async (req, res) => {
   try {
     console.log('Upload request received:', req.file);
     console.log('Session userId for upload:', req.session.userId);
@@ -1791,7 +1739,7 @@ app.post('/api/videos/upload', isAuthenticated, (req, res, next) => {
     }
     next();
   });
-}, csrfProtection, async (req, res) => {
+}, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ 
@@ -1935,7 +1883,7 @@ app.post('/api/audio/upload', isAuthenticated, (req, res, next) => {
     }
     next();
   });
-}, csrfProtection, async (req, res) => {
+}, async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ 
@@ -3483,7 +3431,7 @@ app.post('/api/streams', isAuthenticated, [
   }
 });
 
-app.post('/api/streams/youtube', isAuthenticated, uploadThumbnail.single('thumbnail'), csrfProtection, async (req, res) => {
+app.post('/api/streams/youtube', isAuthenticated, uploadThumbnail.single('thumbnail'), async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const YoutubeChannel = require('./models/YoutubeChannel');
@@ -3649,7 +3597,7 @@ app.get('/api/streams/:id', isAuthenticated, async (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to fetch stream' });
   }
 });
-app.put('/api/streams/:id', isAuthenticated, uploadThumbnail.single('thumbnail'), csrfProtection, async (req, res) => {
+app.put('/api/streams/:id', isAuthenticated, uploadThumbnail.single('thumbnail'), async (req, res) => {
   try {
     const stream = await Stream.findById(req.params.id);
     if (!stream) {
@@ -4433,7 +4381,7 @@ app.get('/api/rotations/:id', isAuthenticated, async (req, res) => {
   }
 });
 
-app.post('/api/rotations', isAuthenticated, uploadThumbnail.any(), csrfProtection, async (req, res) => {
+app.post('/api/rotations', isAuthenticated, uploadThumbnail.any(), async (req, res) => {
   try {
     const { name, repeat_mode, start_time, end_time, items, youtube_channel_id } = req.body;
     
@@ -4505,7 +4453,7 @@ app.post('/api/rotations', isAuthenticated, uploadThumbnail.any(), csrfProtectio
   }
 });
 
-app.put('/api/rotations/:id', isAuthenticated, uploadThumbnail.any(), csrfProtection, async (req, res) => {
+app.put('/api/rotations/:id', isAuthenticated, uploadThumbnail.any(), async (req, res) => {
   try {
     const rotation = await Rotation.findById(req.params.id);
     if (!rotation) {
@@ -4657,139 +4605,81 @@ app.post('/api/rotations/:id/stop', isAuthenticated, async (req, res) => {
   }
 });
 
-let server = null;
-let shuttingDown = false;
-
-async function startServer() {
+const server = app.listen(port, '0.0.0.0', async () => {
   try {
     await initializeDatabase();
-
-    try {
-      const streams = await Stream.findAll(null, 'live');
-      if (streams && streams.length > 0) {
-        console.log(`Resetting ${streams.length} live streams to offline state...`);
-        for (const stream of streams) {
-          await Stream.updateStatus(stream.id, 'offline');
-        }
+  } catch (error) {
+    console.error('Failed to initialize database:', error);
+    process.exit(1);
+  }
+  
+  const ipAddresses = getLocalIpAddresses();
+  console.log(`StreamFlow running at:`);
+  if (ipAddresses && ipAddresses.length > 0) {
+    ipAddresses.forEach(ip => {
+      console.log(`  http://${ip}:${port}`);
+    });
+  } else {
+    console.log(`  http://localhost:${port}`);
+  }
+  try {
+    const streams = await Stream.findAll(null, 'live');
+    if (streams && streams.length > 0) {
+      console.log(`Resetting ${streams.length} live streams to offline state...`);
+      for (const stream of streams) {
+        await Stream.updateStatus(stream.id, 'offline');
       }
-    } catch (error) {
-      console.error('Error resetting stream statuses:', error);
     }
-
-    schedulerService.init(streamingService);
-    rotationService.init();
-
-    try {
-      await streamingService.syncStreamStatuses();
-    } catch (error) {
-      console.error('Failed to sync stream statuses:', error);
-    }
-
-    server = app.listen(port, '0.0.0.0', () => {
-      const ipAddresses = getLocalIpAddresses();
-      console.log('StreamFlow running at:');
-      if (ipAddresses && ipAddresses.length > 0) {
-        ipAddresses.forEach(ip => {
-          console.log(`  http://${ip}:${port}`);
-        });
-      } else {
-        console.log(`  http://localhost:${port}`);
-      }
-    });
-
-    server.timeout = 15 * 60 * 1000;
-    server.keepAliveTimeout = 65 * 1000;
-    server.headersTimeout = 70 * 1000;
-
-    server.on('error', (error) => {
-      console.error('HTTP server error:', error);
-      void shutdown('HTTP server error', 1);
-    });
   } catch (error) {
-    console.error('Failed to start application:', error);
-    await shutdown('startup failure', 1);
+    console.error('Error resetting stream statuses:', error);
   }
-}
-
-async function shutdown(reason, exitCode = 0) {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  console.log(`Shutting down (${reason})...`);
-
-  const forceExitTimer = setTimeout(() => {
-    console.error('Graceful shutdown timed out. Forcing process exit.');
-    process.exit(exitCode);
-  }, 30 * 1000);
-  forceExitTimer.unref();
-
+  schedulerService.init(streamingService);
+  rotationService.init();
   try {
-    schedulerService.shutdown();
+    await streamingService.syncStreamStatuses();
   } catch (error) {
-    console.error('Scheduler shutdown error:', error);
+    console.error('Failed to sync stream statuses:', error);
   }
-
-  try {
-    await streamingService.gracefulShutdown();
-  } catch (error) {
-    console.error('Streaming service shutdown error:', error);
-  }
-
-  try {
-    rotationService.shutdown();
-  } catch (error) {
-    console.error('Rotation service shutdown error:', error);
-  }
-
-  if (server) {
-    await new Promise((resolve) => {
-      server.close(() => {
-        console.log('Server closed.');
-        resolve();
-      });
-    });
-  }
-
-  clearTimeout(forceExitTimer);
-  process.exit(exitCode);
-}
-
-process.on('SIGTERM', () => {
-  void shutdown('SIGTERM', 0);
 });
 
-process.on('SIGINT', () => {
-  void shutdown('SIGINT', 0);
-});
+server.timeout = 30 * 60 * 1000;
+server.keepAliveTimeout = 30 * 60 * 1000;
+server.headersTimeout = 30 * 60 * 1000;
 
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught Exception:', error);
-  void shutdown('uncaught exception', 1);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  void shutdown('unhandled rejection', 1);
-});
-
-app.use((err, req, res, next) => {
-  console.error('Express error:', err);
-
-  if (res.headersSent) {
-    return next(err);
-  }
-
-  const status = err.status || err.statusCode || 500;
-  if (req.path.startsWith('/api/') || req.is('application/json')) {
-    return res.status(status).json({
-      success: false,
-      error: status >= 500 ? 'Internal server error' : (err.message || 'Request failed')
-    });
-  }
-
-  return res.status(status).render('error', {
-    title: 'Error',
-    error: status >= 500 ? 'Internal server error' : (err.message || 'Request failed')
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...');
+  schedulerService.shutdown();
+  await streamingService.gracefulShutdown();
+  rotationService.shutdown();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
   });
 });
 
-void startServer();
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully...');
+  schedulerService.shutdown();
+  await streamingService.gracefulShutdown();
+  rotationService.shutdown();
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('uncaughtException', async (error) => {
+  console.error('Uncaught Exception:', error);
+  schedulerService.shutdown();
+  await streamingService.gracefulShutdown();
+  rotationService.shutdown();
+  process.exit(1);
+});
+
+process.on('unhandledRejection', async (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  schedulerService.shutdown();
+  await streamingService.gracefulShutdown();
+  rotationService.shutdown();
+  process.exit(1);
+});
