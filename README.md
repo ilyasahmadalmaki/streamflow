@@ -1,16 +1,9 @@
 <div align="center">
 
-![logo](https://github.com/user-attachments/assets/83d95886-2fbb-45c7-986a-e6c4d053bc55)
-
 ## StreamFlow: Web-Based Multi-Platform Streaming
 
-[![Version](https://img.shields.io/badge/version-2.2.2-blue.svg)](https://github.com/bangtutorial/streamflow/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/bangtutorial/streamflow/blob/main/LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/bangtutorial/streamflow/blob/main/CONTRIBUTING.md)
-[![GitHub Stars](https://img.shields.io/github/stars/bangtutorial/streamflow?style=social)](https://github.com/bangtutorial/streamflow/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/bangtutorial/streamflow?style=social)](https://github.com/bangtutorial/streamflow/network/members)
-
-**StreamFlow** adalah platform live streaming berbasis web yang powerful dan mudah digunakan. Streaming ke YouTube, Facebook, dan platform RTMP lainnya secara bersamaan dengan satu aplikasi. Dilengkapi dengan video management, scheduled streaming, dan real-time monitoring untuk pengalaman streaming yang profesional.
+##TOOLS YANG DI MODIF MASIH DALAM TAHAP BETA, SILAHKAN PAKE DAN ANALISA BUG MASING MASING, OERBAIKI MASING MASING
+*HYDRALIVE (ORIGINAK NAME: STREAMFLOW)** adalah platform live streaming berbasis web yang powerful dan mudah digunakan. Streaming ke YouTube, Facebook, dan platform RTMP lainnya secara bersamaan dengan satu aplikasi. Dilengkapi dengan video management, scheduled streaming, dan real-time monitoring untuk pengalaman streaming yang profesional.
 
 [🚀 Installation](#-quick-installation) • [📖 Documentation](#-manual-installation) • [🐳 Docker](#-docker-deployment) • [🪛 Troubleshooting](#-troubleshooting) • [💬 Community](https://github.com/bangtutorial/streamflow/discussions)
 
@@ -89,7 +82,7 @@ sudo apt install git -y
 
 Clone repository:
 ```bash
-git clone https://github.com/bangtutorial/streamflow
+git clone https://github.com/ilyasahmadalmaki/streamflow
 ```
 
 Masuk ke direktori project:
