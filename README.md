@@ -1,11 +1,11 @@
 <div align="center">
 
-## StreamFlow: Web-Based Multi-Platform Streaming
+## Hydra Live V9: Web-Based Multi-Platform Streaming
 
 ##TOOLS YANG DI MODIF MASIH DALAM TAHAP BETA, SILAHKAN PAKE DAN ANALISA BUG MASING MASING, OERBAIKI MASING MASING
-*HYDRALIVE (ORIGINAK NAME: STREAMFLOW)** adalah platform live streaming berbasis web yang powerful dan mudah digunakan. Streaming ke YouTube, Facebook, dan platform RTMP lainnya secara bersamaan dengan satu aplikasi. Dilengkapi dengan video management, scheduled streaming, dan real-time monitoring untuk pengalaman streaming yang profesional.
+**HYDRA LIVE V9** adalah platform live streaming berbasis web yang powerful dan mudah digunakan. Streaming ke YouTube, Facebook, dan platform RTMP lainnya secara bersamaan dengan satu aplikasi. Dilengkapi dengan video management, scheduled streaming, dan real-time monitoring untuk pengalaman streaming yang profesional.
 
-[🚀 Installation](#-quick-installation) • [📖 Documentation](#-manual-installation) • [🐳 Docker](#-docker-deployment) • [🪛 Troubleshooting](#-troubleshooting) • [💬 Community](https://github.com/bangtutorial/streamflow/discussions)
+[🚀 Installation](#-quick-installation) • [📖 Documentation](#-manual-installation) • [🐳 Docker](#-docker-deployment) • [🪛 Troubleshooting](#-troubleshooting) • [💬 Community](https://github.com/ilyasahmadalmaki/streamflow/issues)
 
 ![screenshot](https://github.com/user-attachments/assets/fef1c0a5-04f6-41ae-8ea1-5eb1fff13a22)
 
@@ -78,7 +78,7 @@ Install Git:
 sudo apt install git -y
 ```
 
-### 2. Setup Project StreamFlow
+### 2. Setup Project Hydra Live V9
 
 Clone repository:
 ```bash
@@ -87,7 +87,7 @@ git clone https://github.com/ilyasahmadalmaki/streamflow
 
 Masuk ke direktori project:
 ```bash
-cd streamflow
+cd hydra-live-v9
 ```
 
 Install Paket Node.JS:
@@ -152,7 +152,7 @@ sudo npm install -g pm2
 
 Jalankan aplikasi dengan PM2:
 ```bash
-pm2 start app.js --name streamflow
+pm2 start app.js --name hydra-live-v9
 ```
 
 **Setup Auto-Restart saat Server Reboot:**
@@ -176,13 +176,13 @@ pm2 save
 pm2 status
 
 # Restart aplikasi
-pm2 restart streamflow
+pm2 restart hydra-live-v9
 
 # Stop aplikasi
-pm2 stop streamflow
+pm2 stop hydra-live-v9
 
 # Lihat logs aplikasi
-pm2 logs streamflow
+pm2 logs hydra-live-v9
 
 # Monitor resource usage
 pm2 monit
@@ -201,7 +201,7 @@ Contoh: `http://88.12.34.56:7575`
 Jika lupa password atau perlu reset akun:
 
 ```bash
-cd streamflow && node reset-password.js
+cd hydra-live-v9 && node reset-password.js
 ```
 
 ## ⏰ Pengaturan Timezone Server
@@ -225,7 +225,7 @@ sudo timedatectl set-timezone Asia/Jakarta
 
 ### Restart aplikasi setelah mengubah timezone:
 ```bash
-pm2 restart streamflow
+pm2 restart hydra-live-v9
 ```
 
 ## 🐳 Docker Deployment
@@ -282,7 +282,7 @@ sudo kill -9 <PID>
 rm db/*.db
 
 # Restart aplikasi untuk membuat database baru
-pm2 restart streamflow
+pm2 restart hydra-live-v9
 ```
 
 ### Docker Troubleshooting
@@ -301,11 +301,11 @@ pm2 restart streamflow
 
 ## 💫 Contributors
 
-[![Contributors](https://contrib.rocks/image?repo=bangtutorial/streamflow)](https://github.com/bangtutorial/streamflow/graphs/contributors)
+[![Contributors](https://contrib.rocks/image?repo=ilyasahmadalmaki/streamflow)](https://github.com/ilyasahmadalmaki/streamflow/graphs/contributors)
 
 ## 📄 License
 
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/bangtutorial/streamflow/blob/main/LICENSE)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/ilyasahmadalmaki/streamflow/blob/main/LICENSE.md)
 
 ---
 © 2026 - [Bang Tutorial](https://youtube.com/bangtutorial)
