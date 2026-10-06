@@ -1,15 +1,14 @@
 <div align="center">
 
-## Hydra Live V9: Web-Based Multi-Platform Streaming
+# Hydra Live V9: Web-Based Multi-Platform Streaming
 
-##TOOLS YANG DI MODIF MASIH DALAM TAHAP BETA, SILAHKAN PAKE DAN ANALISA BUG MASING MASING, OERBAIKI MASING MASING
-**HYDRA LIVE V9** adalah platform live streaming berbasis web yang powerful dan mudah digunakan. Streaming ke YouTube, Facebook, dan platform RTMP lainnya secara bersamaan dengan satu aplikasi. Dilengkapi dengan video management, scheduled streaming, dan real-time monitoring untuk pengalaman streaming yang profesional.
+> ⚠️ **Status: Beta** — Project ini masih dalam tahap pengembangan aktif. Silakan pakai, analisa, dan laporkan bug yang kamu temukan.
 
-[🚀 Installation](#-quick-installation) • [📖 Documentation](#-manual-installation) • [🐳 Docker](#-docker-deployment) • [🪛 Troubleshooting](#-troubleshooting) • [💬 Community](https://github.com/ilyasahmadalmaki/streamflow/issues)
+**HYDRA LIVE V9** adalah platform live streaming berbasis web yang powerful dan mudah digunakan. Streaming ke YouTube, Facebook, dan platform RTMP lainnya secara bersamaan dari satu aplikasi. Dilengkapi dengan video management, scheduled streaming, dan real-time monitoring untuk pengalaman streaming yang profesional.
+
+[🚀 Installation](#-quick-installation) • [📖 Documentation](#-manual-installation) • [🔒 HTTPS](#-instalasi-https-domain--ssl) • [🐳 Docker](#-docker-deployment) • [🪛 Troubleshooting](#-troubleshooting) • [💬 Community](https://github.com/ilyasahmadalmaki/streamflow/issues)
 
 ![screenshot](https://github.com/user-attachments/assets/fef1c0a5-04f6-41ae-8ea1-5eb1fff13a22)
-
-
 
 </div>
 
@@ -28,7 +27,7 @@
 
 ## 💻 System Requirements
 
-- **Node.js** v18 atau versi terbaru
+- **Node.js v22** (wajib — modul native tidak kompatibel dengan Node 24)
 - **FFmpeg** untuk video processing
 - **SQLite3** (sudah termasuk dalam package)
 - **VPS/Server** dengan minimal 1 Core CPU & 1GB RAM
@@ -51,7 +50,7 @@ Update sistem operasi:
 sudo apt update && sudo apt upgrade -y
 ```
 
-Install Node.js:
+Install Node.js 22:
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt-get install -y nodejs
@@ -90,12 +89,12 @@ Masuk ke direktori project:
 cd streamflow
 ```
 
-Install Paket Node.JS:
+Install paket Node.js:
 ```bash
 npm install
 ```
 
-Generate Secret Key:
+Generate secret key:
 ```bash
 node generate-secret.js
 ```
@@ -112,12 +111,12 @@ npm run dev
 
 ### 3. Konfigurasi Firewall
 
-**PENTING: Buka port SSH terlebih dahulu untuk menghindari terputusnya koneksi!**
+**PENTING: buka port SSH terlebih dahulu untuk menghindari terkuncinya koneksi!**
 
 Buka port SSH (biasanya port 22):
 ```bash
 sudo ufw allow ssh
-# atau jika menggunakan port custom SSH
+# atau jika menggunakan port SSH custom:
 # sudo ufw allow [PORT_SSH_ANDA]
 ```
 
@@ -136,7 +135,7 @@ Aktifkan firewall:
 sudo ufw enable
 ```
 
-Verifikasi status firewall setelah aktif:
+Verifikasi status firewall:
 ```bash
 sudo ufw status
 ```
@@ -155,7 +154,7 @@ Jalankan aplikasi dengan PM2:
 pm2 start app.js --name hydra-live-v9
 ```
 
-**Setup Auto-Restart saat Server Reboot:**
+**Setup auto-restart saat server reboot:**
 ```bash
 # Simpan konfigurasi PM2 saat ini
 pm2 save
@@ -164,37 +163,172 @@ pm2 save
 pm2 startup
 
 # Ikuti instruksi yang muncul, biasanya berupa command yang harus dijalankan dengan sudo
-# Contoh output: sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u username --hp /home/username
+# Contoh: sudo env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u username --hp /home/username
 
-# Setelah menjalankan command startup, save kembali
+# Setelah menjalankan command startup, simpan kembali
 pm2 save
 ```
 
-**Perintah PM2 Berguna:**
+**Perintah PM2 yang berguna:**
 ```bash
-# Lihat status aplikasi
-pm2 status
-
-# Restart aplikasi
+pm2 status              # Lihat status aplikasi
 pm2 restart hydra-live-v9
-
-# Stop aplikasi
 pm2 stop hydra-live-v9
-
-# Lihat logs aplikasi
-pm2 logs hydra-live-v9
-
-# Monitor resource usage
-pm2 monit
+pm2 logs hydra-live-v9  # Lihat logs aplikasi
+pm2 monit               # Monitor resource usage
 ```
 
 Akses aplikasi melalui browser:
 ```
-http://IP_SERVER:PORT
+http://IP_SERVER:7575
 ```
 
 Contoh: `http://88.12.34.56:7575`
 
+## 🔒 Instalasi HTTPS (Domain + SSL)
+
+**Kenapa perlu HTTPS?** Untuk fitur *YouTube API (OAuth)*, Google mewajibkan redirect URI berupa **HTTPS** dengan **nama domain** — IP mentah tidak diterima, dan harus didaftarkan persis di Google Cloud Console. Tanpa ini, proses "Connect YouTube Account" tidak akan jalan. Kalau kamu hanya pakai *stream key manual*, bagian ini opsional.
+
+Pilih salah satu dari 3 opsi di bawah. Setelah HTTPS aktif, daftarkan redirect URI berikut di Google Cloud Console (Credentials → OAuth Client ID):
+
+```
+https://DOMAIN_KAMU/auth/youtube/callback
+```
+
+---
+
+### Opsi A — Caddy + DuckDNS ⭐ (Rekomendasi)
+
+Paling simpel: Caddy mengurus sertifikat SSL otomatis (Let's Encrypt) tanpa config manual.
+
+**1. Daftar domain gratis di DuckDNS:**
+- Buka [duckdns.org](https://www.duckdns.org), login, buat subdomain (misal `hydraku`), arahkan ke IP VPS kamu.
+
+**2. Buka port 80 & 443** (dibutuhkan untuk verifikasi Let's Encrypt):
+```bash
+sudo ufw allow 80
+sudo ufw allow 443
+```
+
+**3. Install Caddy:**
+```bash
+sudo apt install -y debian-keyring debian-archive-keyring apt-transport-https curl
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | sudo gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | sudo tee /etc/apt/sources.list.d/caddy-stable.list
+sudo apt update && sudo apt install -y caddy
+```
+
+**4. Buat Caddyfile** (`sudo nano /etc/caddy/Caddyfile`):
+```
+hydraku.duckdns.org {
+    reverse_proxy localhost:7575
+}
+```
+
+**5. Reload Caddy** — sertifikat SSL terbit otomatis:
+```bash
+sudo systemctl reload caddy
+```
+
+Selesai. Akses via `https://hydraku.duckdns.org`.
+
+---
+
+### Opsi B — Cloudflare Tunnel
+
+Tanpa buka port sama sekali di VPS, tanpa urus sertifikat. Cocok kalau port 80/443 diblokir.
+
+**1. Install `cloudflared`:**
+```bash
+curl -L -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared.deb
+```
+
+**2. Login & buat tunnel:**
+```bash
+cloudflared tunnel login
+cloudflared tunnel create hydra-tunnel
+```
+
+**3. Route-kan domain ke tunnel** (bisa pakai domain sendiri atau subdomain Cloudflare):
+```bash
+cloudflared tunnel route dns hydra-tunnel hydraku.duckdns.org
+```
+
+**4. Buat config** (`~/.cloudflared/config.yml`):
+```yaml
+tunnel: hydra-tunnel
+credentials-file: /home/USERNAME/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  - hostname: hydraku.duckdns.org
+    service: http://localhost:7575
+  - service: http_status:404
+```
+
+**5. Jalankan sebagai service:**
+```bash
+sudo cloudflared service install
+sudo systemctl start cloudflared
+```
+
+Selesai. Akses via `https://hydraku.duckdns.org` (HTTPS otomatis dari Cloudflare).
+
+---
+
+### Opsi C — Nginx + Certbot
+
+Cara klasik, kontrol penuh, tapi semua langkah manual.
+
+**1. Siapkan domain** (misal via DuckDNS, arahkan ke IP VPS) dan buka port 80/443:
+```bash
+sudo ufw allow 80
+sudo ufw allow 443
+```
+
+**2. Install Nginx & Certbot:**
+```bash
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+**3. Buat virtual host** (`sudo nano /etc/nginx/sites-available/hydra`):
+```nginx
+server {
+    listen 80;
+    server_name hydraku.duckdns.org;
+
+    location / {
+        proxy_pass http://localhost:7575;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+**4. Aktifkan & terbitkan sertifikat:**
+```bash
+sudo ln -s /etc/nginx/sites-available/hydra /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d hydraku.duckdns.org
+```
+
+Certbot otomatis renew via systemd timer. Cek dengan `sudo certbot renew --dry-run`.
+
+---
+
+### Ringkasan Perbandingan
+
+|  | Caddy | Cloudflare Tunnel | Nginx + Certbot |
+|---|---|---|---|
+| Tingkat kesulitan | ⭐ Mudah | ⭐⭐ Sedang | ⭐⭐⭐ Manual |
+| Sertifikat SSL | Otomatis | Otomatis (Cloudflare) | Manual via Certbot |
+| Port 80/443 dibuka | Ya | **Tidak perlu** | Ya |
+| Ketergantungan pihak ke-3 | Let's Encrypt | Cloudflare | Let's Encrypt |
 
 ## 🔐 Reset Password
 
@@ -208,22 +342,22 @@ cd streamflow && node reset-password.js
 
 Untuk memastikan scheduled streaming berjalan dengan waktu yang akurat:
 
-### Cek timezone saat ini:
+Cek timezone saat ini:
 ```bash
 timedatectl status
 ```
 
-### Lihat daftar timezone tersedia:
+Lihat daftar timezone yang tersedia:
 ```bash
 timedatectl list-timezones | grep Asia
 ```
 
-### Set timezone ke WIB (Jakarta):
+Set timezone ke WIB (Jakarta):
 ```bash
 sudo timedatectl set-timezone Asia/Jakarta
 ```
 
-### Restart aplikasi setelah mengubah timezone:
+Restart aplikasi setelah mengubah timezone:
 ```bash
 pm2 restart hydra-live-v9
 ```
@@ -249,7 +383,7 @@ Akses aplikasi: [http://localhost:7575](http://localhost:7575)
 
 ### 3. Data Persistence
 
-Data akan tersimpan secara otomatis di:
+Data tersimpan otomatis di:
 - Database: `db/`
 - Logs: `logs/`
 - Upload files: `public/uploads/`
@@ -297,7 +431,7 @@ pm2 restart hydra-live-v9
 
 **Production (HTTPS):**
 - Set `NODE_ENV=production`
-- Akses melalui HTTPS untuk cookie session
+- Akses melalui HTTPS agar cookie session aman
 
 ## 💫 Contributors
 
@@ -309,5 +443,3 @@ pm2 restart hydra-live-v9
 
 ---
 © 2026 - [Bang Tutorial](https://youtube.com/bangtutorial)
-
-
