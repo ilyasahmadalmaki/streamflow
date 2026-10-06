@@ -87,7 +87,7 @@ git clone https://github.com/ilyasahmadalmaki/streamflow
 
 Masuk ke direktori project:
 ```bash
-cd hydra-live-v9
+cd streamflow
 ```
 
 Install Paket Node.JS:
@@ -201,7 +201,7 @@ Contoh: `http://88.12.34.56:7575`
 Jika lupa password atau perlu reset akun:
 
 ```bash
-cd hydra-live-v9 && node reset-password.js
+cd streamflow && node reset-password.js
 ```
 
 ## ⏰ Pengaturan Timezone Server
