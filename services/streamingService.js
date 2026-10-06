@@ -8,6 +8,10 @@ const { db } = require('../db/database');
 const Stream = require('../models/Stream');
 const Playlist = require('../models/Playlist');
 const Video = require('../models/Video');
+const telegram = require('./telegramNotify');
+
+// Stream yang sudah dikirimi notif "mati" — dipakai untuk notif "pulih" sekali saja.
+const notifiedDownStreams = new Set();
 
 let ffmpegPath;
 if (fs.existsSync('/usr/bin/ffmpeg')) {
@@ -185,10 +189,43 @@ function getRelevantStartupLog(line) {
   return trimmed;
 }
 
+// Menerjemahkan error mentah FFmpeg ke bahasa yang dimengerti user.
+// Return null kalau tidak ada pola yang cocok (pakai pesan asli).
+function translateFFmpegError(detail) {
+  const lower = (detail || '').toLowerCase();
+
+  if (lower.includes('error opening output')) {
+    if (lower.includes('input/output error') || lower.includes('connection refused') || lower.includes('cannot open connection')) {
+      return 'Tidak bisa terhubung ke server streaming. Periksa RTMP URL dan stream key, pastikan keduanya benar dan belum kedaluwarsa';
+    }
+    if (lower.includes('permission denied')) {
+      return 'Akses ditolak oleh server streaming. Stream key mungkin salah atau tidak punya izin siaran';
+    }
+    return 'Gagal membuka koneksi ke server streaming. Periksa RTMP URL dan stream key';
+  }
+  if (lower.includes('invalid data found when processing input') || lower.includes('could not find codec parameters')) {
+    return 'File video rusak atau formatnya tidak didukung. Coba pakai file video lain';
+  }
+  if (lower.includes('no such file or directory')) {
+    return 'File video tidak ditemukan di server. Coba upload ulang videonya';
+  }
+  if (lower.includes('401') || lower.includes('unauthorized') || lower.includes('403') || lower.includes('forbidden')) {
+    return 'Server menolak kredensial streaming. Periksa kembali stream key kamu';
+  }
+  if (lower.includes('operation timed out') || lower.includes('timed out')) {
+    return 'Koneksi ke server streaming timeout. Periksa koneksi internet server lalu coba lagi';
+  }
+  if (lower.includes('no space left on device')) {
+    return 'Penyimpanan server penuh. Hapus file yang tidak dipakai lalu coba lagi';
+  }
+  return null;
+}
+
 function buildStartupFailureMessage(startupState, fallbackMessage = null) {
   const detail = startupState.lastErrorLine || startupState.lastLogLine || fallbackMessage;
   if (detail) {
-    return `FFmpeg gagal memulai stream: ${detail}`;
+    const friendly = translateFFmpegError(detail);
+    return friendly ? `${friendly} (detail teknis: ${detail})` : `FFmpeg gagal memulai stream: ${detail}`;
   }
 
   return 'FFmpeg gagal memulai stream';
@@ -966,6 +1003,13 @@ async function startStream(streamId, isRetry = false, baseUrl = null) {
             schedulerService.handleStreamStopped(streamId);
           }
         } catch (e) { }
+        // Notifikasi Telegram: stream mati abnormal (bukan stop manual / jadwal selesai).
+        const abnormalExit = (code !== 0 && code !== null) || (signal !== null && signal !== undefined);
+        if (abnormalExit) {
+          const title = (currentStream && currentStream.title) || (stream && stream.title) || streamId;
+          notifiedDownStreams.add(streamId);
+          telegram.notifyStreamDown(title, `FFmpeg berhenti (code=${code}, signal=${signal})`).catch(() => {});
+        }
         cleanupStreamData(streamId);
       }
     });
@@ -1005,13 +1049,19 @@ async function startStream(streamId, isRetry = false, baseUrl = null) {
       }
     }
 
+    // Notifikasi "pulih" — hanya kalau sebelumnya sempat dikirimi notif "mati".
+    if (isRetry && notifiedDownStreams.has(streamId)) {
+      notifiedDownStreams.delete(streamId);
+      const title = (stream && stream.title) || streamId;
+      telegram.notifyStreamRecovered(title).catch(() => {});
+    }
+
     return {
       success: true,
       message: 'Stream started successfully',
       isAdvancedMode: stream.use_advanced_settings
     };
-  } catch (error) {
-    addStreamLog(streamId, `Start failed: ${error.message}`);
+  } catch (error) {    addStreamLog(streamId, `Start failed: ${error.message}`);
     return { success: false, error: error.message, code: error.code || null };
   } finally {
     startingStreams.delete(streamId);
