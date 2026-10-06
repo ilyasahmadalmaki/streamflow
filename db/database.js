@@ -330,12 +330,6 @@ function createTables() {
         }
       });
 
-      db.run(`ALTER TABLE youtube_channels ADD COLUMN oauth_credential_id TEXT`, (err) => {
-        if (err && !err.message.includes('duplicate column name')) {
-          console.error('Error adding oauth_credential_id column:', err.message);
-        }
-      });
-
       db.run(`CREATE TABLE IF NOT EXISTS youtube_channels (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
@@ -345,6 +339,7 @@ function createTables() {
         subscriber_count TEXT DEFAULT '0',
         access_token TEXT,
         refresh_token TEXT,
+        oauth_credential_id TEXT,
         is_default INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -352,6 +347,12 @@ function createTables() {
       )`, (err) => {
         if (err && !err.message.includes('already exists')) {
           console.error('Error creating youtube_channels table:', err.message);
+        }
+      });
+
+      db.run(`ALTER TABLE youtube_channels ADD COLUMN oauth_credential_id TEXT`, (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+          console.error('Error adding oauth_credential_id column:', err.message);
         }
       });
 
