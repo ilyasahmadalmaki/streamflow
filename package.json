@@ -1,5 +1,5 @@
 {
-  "name": "streamflow",
+  "name": "hydra-live-v9",
   "version": "2.2.2",
   "description": "Cloud streaming solution with FFmpeg",
   "main": "app.js",
