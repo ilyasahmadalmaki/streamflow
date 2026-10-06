@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# StreamFlow installer
+# Hydra Live V9 installer
 # - Uses Node.js 22.x + npm, matching the documented manual installation.
 # - Does NOT install pnpm.
-# - Safe to re-run: preserves .env and existing StreamFlow data.
+# - Safe to re-run: preserves .env and existing Hydra Live V9 data.
 # - Fails loudly on required steps instead of hiding errors with `|| true`.
 
-APP_NAME="streamflow"
-APP_DIR="${HOME}/streamflow"
+APP_NAME="hydra-live-v9"
+APP_DIR="${HOME}/hydra-live-v9"
 REPO_URL="https://github.com/ilyasahmadalmaki/streamflow.git"
 NODE_MAJOR="22"
 DEFAULT_PORT="7575"
@@ -47,7 +47,7 @@ ARCH="$(dpkg --print-architecture 2>/dev/null || true)"
     die "Arsitektur ${ARCH:-unknown} belum didukung oleh installer ini."
 
 echo "=============================================="
-echo "        StreamFlow Stable Installer"
+echo "        Hydra Live V9 Stable Installer"
 echo "        Node.js ${NODE_MAJOR} + npm"
 echo "        pnpm: DISABLED"
 echo "=============================================="
@@ -106,14 +106,14 @@ ok "Node.js ${NODE_VERSION}"
 ok "npm ${NPM_VERSION}"
 
 if command -v pnpm >/dev/null 2>&1; then
-    warn "pnpm terdeteksi di server, tetapi installer StreamFlow tidak menggunakannya."
+    warn "pnpm terdeteksi di server, tetapi installer Hydra Live V9 tidak menggunakannya."
 fi
 
 # ------------------------------------------------------------
 # 3. Repository
 # ------------------------------------------------------------
 if [[ -d "${APP_DIR}/.git" ]]; then
-    log "Repository StreamFlow sudah ada."
+    log "Repository Hydra Live V9 sudah ada."
 
     cd "${APP_DIR}"
 
@@ -133,15 +133,15 @@ if [[ -d "${APP_DIR}/.git" ]]; then
     git pull --ff-only
 else
     if [[ -e "${APP_DIR}" ]]; then
-        die "${APP_DIR} sudah ada tetapi bukan repository Git StreamFlow."
+        die "${APP_DIR} sudah ada tetapi bukan repository Git Hydra Live V9."
     fi
 
-    log "Clone repository StreamFlow..."
+    log "Clone repository Hydra Live V9..."
     git clone "${REPO_URL}" "${APP_DIR}"
     cd "${APP_DIR}"
 fi
 
-ok "Source StreamFlow siap di ${APP_DIR}"
+ok "Source Hydra Live V9 siap di ${APP_DIR}"
 
 # ------------------------------------------------------------
 # 4. Environment / SESSION_SECRET
@@ -301,15 +301,15 @@ command -v pm2 >/dev/null 2>&1 || die "PM2 gagal ditemukan."
 ok "PM2 $(pm2 --version)"
 
 # ------------------------------------------------------------
-# 11. Start / restart StreamFlow
+# 11. Start / restart Hydra Live V9
 # ------------------------------------------------------------
 cd "${APP_DIR}"
 
 if pm2 describe "${APP_NAME}" >/dev/null 2>&1; then
-    log "Restart StreamFlow..."
+    log "Restart Hydra Live V9..."
     pm2 restart "${APP_NAME}" --update-env
 else
-    log "Menjalankan StreamFlow..."
+    log "Menjalankan Hydra Live V9..."
     pm2 start app.js --name "${APP_NAME}" --time
 fi
 
@@ -338,7 +338,7 @@ ok "PM2 startup tersimpan."
 # ------------------------------------------------------------
 # 13. Runtime verification
 # ------------------------------------------------------------
-log "Menunggu StreamFlow siap..."
+log "Menunggu Hydra Live V9 siap..."
 
 READY=0
 for _ in {1..30}; do
@@ -356,7 +356,7 @@ done
 
 if [[ "${READY}" -ne 1 ]]; then
     echo
-    warn "StreamFlow belum memberikan HTTP response."
+    warn "Hydra Live V9 belum memberikan HTTP response."
     echo "----- PM2 STATUS -----"
     pm2 status || true
     echo "----- PM2 LOGS (50) -----"
@@ -364,7 +364,7 @@ if [[ "${READY}" -ne 1 ]]; then
     die "Health/readiness check gagal. Lihat log di atas."
 fi
 
-ok "StreamFlow merespons HTTP pada port ${APP_PORT}."
+ok "Hydra Live V9 merespons HTTP pada port ${APP_PORT}."
 
 # ------------------------------------------------------------
 # 14. Final summary
@@ -374,7 +374,7 @@ SERVER_IP="${SERVER_IP:-$(curl -4 -fsS --max-time 5 ifconfig.me 2>/dev/null || e
 
 echo
 echo "=============================================="
-echo "        STREAMFLOW SIAP DIGUNAKAN"
+echo "        HYDRA LIVE V9 SIAP DIGUNAKAN"
 echo "=============================================="
 echo "URL       : http://${SERVER_IP}:${APP_PORT}"
 echo "Directory : ${APP_DIR}"
