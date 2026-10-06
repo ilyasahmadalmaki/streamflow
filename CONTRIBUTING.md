@@ -1,6 +1,6 @@
-# Contributing to StreamFlow
+# Contributing to Hydra Live V9
 
-Terima kasih sudah tertarik untuk berkontribusi ke projek StreamFlow
+Terima kasih sudah tertarik untuk berkontribusi ke projek Hydra Live V9
 
 ## Cara Berkontribusi
 
@@ -34,7 +34,7 @@ Terima kasih sudah tertarik untuk berkontribusi ke projek StreamFlow
 
 ## Pertanyaan?
 
-Jika ada pertanyaan, silakan buka [Issue](https://github.com/bangtutorial/streamflow/issues) baru.
+Jika ada pertanyaan, silakan buka [Issue](https://github.com/ilyasahmadalmaki/streamflow/issues) baru.
 
 ---
 Terima kasih atas kontribusinya! 🙏
