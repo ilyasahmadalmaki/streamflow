@@ -164,7 +164,7 @@ function formatDuration(seconds) {
         onclick="playMedia('<%= video.id %>', '<%= video.title %>', '<%= mediaType %>')">
         <div class="aspect-video relative overflow-hidden bg-dark-900">
           <% if (isAudio) { %>
-          <div class="w-full h-full flex items-center justify-center bg-[#181818]">
+          <div class="w-full h-full flex items-center justify-center bg-[#0a0f0c]">
             <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
               <i class="ti ti-music text-3xl text-primary"></i>
             </div>
@@ -260,7 +260,7 @@ function formatDuration(seconds) {
               onclick="playMedia('<%= video.id %>', '<%= video.title %>', '<%= mediaType %>')">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="w-12 h-8 rounded overflow-hidden bg-[#181818] flex-shrink-0 relative flex items-center justify-center">
+                  <div class="w-12 h-8 rounded overflow-hidden bg-[#0a0f0c] flex-shrink-0 relative flex items-center justify-center">
                     <% if (isAudio) { %>
                     <i class="ti ti-music text-primary"></i>
                     <% } else { %>
@@ -1461,7 +1461,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data-media-type="${mediaType}" data-media-title="${title}" draggable="true">
         <div class="aspect-video relative overflow-hidden bg-dark-900">
           ${isAudio ? `
-          <div class="w-full h-full flex items-center justify-center bg-[#181818]">
+          <div class="w-full h-full flex items-center justify-center bg-[#0a0f0c]">
             <div class="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
               <i class="ti ti-music text-3xl text-primary"></i>
             </div>
@@ -1534,7 +1534,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data-media-type="${mediaType}" data-media-title="${title}" draggable="true">
         <td class="px-4 py-3">
           <div class="flex items-center gap-3">
-            <div class="w-12 h-8 rounded overflow-hidden bg-[#181818] flex-shrink-0 relative flex items-center justify-center">
+            <div class="w-12 h-8 rounded overflow-hidden bg-[#0a0f0c] flex-shrink-0 relative flex items-center justify-center">
               ${isAudio ? `<i class="ti ti-music text-primary"></i>` : `<img src="${thumbnail}" alt="" class="w-full h-full object-cover">`}
             </div>
             <div class="flex items-center gap-2">
