@@ -155,6 +155,16 @@ function createUnsupportedCopyModeError(message) {
   return error;
 }
 
+// RTMP(S) harus konek langsung — HTTP proxy merusak handshake RTMP.
+// FFmpeg membaca *_proxy dari env, jadi bersihkan sebelum spawn.
+function stripProxyEnv(env) {
+  const clean = { ...env };
+  for (const key of Object.keys(clean)) {
+    if (/proxy/i.test(key)) delete clean[key];
+  }
+  return clean;
+}
+
 function getRelevantStartupLog(line) {
   const trimmed = (line || '').trim();
   if (!trimmed || isProgressLogLine(trimmed)) {
@@ -799,7 +809,9 @@ async function startStream(streamId, isRetry = false, baseUrl = null) {
 
     const ffmpegProcess = spawn(ffmpegPath, ffmpegArgs, {
       detached: false,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      // RTMP(S) tidak boleh lewat HTTP proxy: handshake rusak ("Input/output error").
+      env: stripProxyEnv(process.env)
     });
 
     const startupState = {
